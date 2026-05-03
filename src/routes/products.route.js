@@ -13,7 +13,13 @@ router.use(express.urlencoded({ extended: false }));
 
 // ===== Multer setup =====
 const uploadRoot = path.join(__dirname, '..', '..', 'uploads', 'products');
-fs.mkdirSync(uploadRoot, { recursive: true });
+try {
+    if (!fs.existsSync(uploadRoot)) {
+        fs.mkdirSync(uploadRoot, { recursive: true });
+    }
+} catch (e) {
+    console.warn('Gagal membuat folder uploads products:', e.message);
+}
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadRoot),

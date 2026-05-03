@@ -5,10 +5,6 @@ const expressLayouts = require('express-ejs-layouts');
 const fs = require('fs');
 const cookieParser = require('cookie-parser');
 
-// siapkan folder uploads/products
-const uploadDir = path.join(__dirname, '..', 'uploads', 'products');
-fs.mkdirSync(uploadDir, { recursive: true });
-
 const app = express();
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -65,7 +61,21 @@ app.use('/', divisiRoutes);
 app.use('/', adminOrdersRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// siapkan folder uploads/products
+const uploadDir = path.join(__dirname, '..', 'uploads', 'products');
+try {
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+    }
+} catch (e) {
+    console.warn('Gagal membuat folder uploads (biasanya karena filesystem read-only di Vercel):', e.message);
+}
+
 app.get('/', (req, res) => res.redirect('/dashboard'));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`App running at http://localhost:${PORT}`));
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, () => console.log(`App running at http://localhost:${PORT}`));
+}
+
+module.exports = app;

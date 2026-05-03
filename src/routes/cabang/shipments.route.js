@@ -14,7 +14,13 @@ router.use(express.urlencoded({ extended: false }));
 
 // ===== Upload setup (bukti foto penerimaan) =====
 const proofsRoot = path.join(__dirname, '..', '..', '..', 'uploads', 'shipments_proofs');
-fs.mkdirSync(proofsRoot, { recursive: true });
+try {
+    if (!fs.existsSync(proofsRoot)) {
+        fs.mkdirSync(proofsRoot, { recursive: true });
+    }
+} catch (e) {
+    console.warn('Gagal membuat folder shipments proofs:', e.message);
+}
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, proofsRoot),
     filename: (req, file, cb) => {
