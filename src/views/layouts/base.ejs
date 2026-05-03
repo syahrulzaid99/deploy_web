@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+        <%= typeof title !=='undefined' ? title : 'Dashboard' %>
+    </title>
+
+    <!-- Fontawesome & Google Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,700,900" rel="stylesheet">
+
+    <!-- SB Admin 2 (CSS) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/css/sb-admin-2.min.css"
+        rel="stylesheet">
+
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+</head>
+
+<body id="page-top">
+    <div id="wrapper">
+        <!-- Sidebar -->
+        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="/dashboard">
+                <div class="sidebar-brand-icon rotate-n-15"><i class="fas fa-cubes"></i></div>
+                <div class="sidebar-brand-text mx-3">Aqua Stock</div>
+            </a>
+
+            <hr class="sidebar-divider my-0">
+            <!-- Dashboard -->
+            <li class="nav-item <%= isPrefix('/dashboard') %>">
+                <a class="nav-link <%= isPrefix('/dashboard') %>" href="/dashboard">
+                    <i class="fas fa-fw fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+
+            <hr class="sidebar-divider">
+            <div class="sidebar-heading">Management</div>
+
+            <% if (user && user.role==='admin' ) { %>
+                <!-- Users (Admin) -->
+                <li class="nav-item <%= isPrefix('/admin/users') %>">
+                    <a class="nav-link <%= isPrefix('/admin/users') %>" href="/admin/users">
+                        <i class="fas fa-users"></i>
+                        <span>Users</span>
+                    </a>
+                </li>
+
+                <!-- Products -->
+                <li class="nav-item <%= isPrefix('/admin/products') %>">
+                    <a class="nav-link <%= isPrefix('/admin/products') %>" href="/admin/products">
+                        <i class="fas fa-box"></i>
+                        <span>Produk</span>
+                    </a>
+                </li>
+
+                <!-- Divisi -->
+                <li class="nav-item <%= isPrefix('/admin/divisi') %>">
+                    <a class="nav-link <%= isPrefix('/admin/divisi') %>" href="/admin/divisi">
+                        <i class="fas fa-tags"></i>
+                        <span>Divisi</span>
+                    </a>
+                </li>
+
+                <!-- Shipments (Admin) -->
+                <li class="nav-item <%= isActive('/admin/shipments') %>">
+                    <a class="nav-link" href="/admin/shipments">
+                        <i class="fas fa-arrow-right-arrow-left"></i>
+                        <span>Pengiriman</span>
+                    </a>
+                </li>
+
+                <!-- Pesanan Cabang (Admin) -->
+                <li class="nav-item <%= isActive('/admin/orders') %>">
+                    <a class="nav-link" href="/admin/orders">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>Pesanan Cabang</span>
+                    </a>
+                </li>
+
+                <!-- Laporan (Admin) -->
+                <li class="nav-item <%= isActive('/admin/reports') %>">
+                    <a class="nav-link" href="/admin/reports">
+                        <i class="fas fa-file-excel"></i>
+                        <span>Laporan</span>
+                    </a>
+                </li>
+                <% } %>
+
+                    <% if (user && user.role==='cabang' ) { %>
+                        <!-- Shipments (Cabang) -->
+                        <li class="nav-item <%= isActive('/cabang/shipments') %>">
+                            <a class="nav-link" href="/cabang/shipments">
+                                <i class="fas fa-arrow-right-arrow-left"></i>
+                                <span>Pengiriman Masuk</span>
+                            </a>
+                        </li>
+
+                        <!-- Orders (Cabang) -->
+                        <li class="nav-item <%= isActive('/cabang/orders') %>">
+                            <a class="nav-link" href="/cabang/orders">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span>Pesanan Saya</span>
+                            </a>
+                        </li>
+                        <% } %>
+
+
+                            <hr class="sidebar-divider d-none d-md-block">
+                            <div class="text-center d-none d-md-inline">
+                                <button class="rounded-circle border-0" id="sidebarToggle"></button>
+                            </div>
+        </ul>
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+            <div id="content">
+                <!-- Topbar -->
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+
+                    <!-- Sidebar Toggle (Topbar) -->
+                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+                        <i class="fa fa-bars"></i>
+                    </button>
+
+                    <!-- Topbar Navbar -->
+                    <ul class="navbar-nav ml-auto">
+                        <!-- Nav Item - User Information -->
+                        <li class="nav-item dropdown no-arrow">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">
+                                    <%= (profile && profile.username).toUpperCase() || (user &&
+                                        user.username).toUpperCase() || 'User' %>
+                                        <!-- (<%= (profile && profile.role) || (user && user.role) || '-' %>) -->
+                                </span>
+                                <img class="img-profile rounded-circle"
+                                    src="https://ui-avatars.com/api/?name=<%= encodeURIComponent((profile && profile.username) || 'U') %>">
+                            </a>
+                            <!-- Dropdown - User -->
+                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                                aria-labelledby="userDropdown">
+                                <a class="dropdown-item" href="/dashboard"><i
+                                        class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i> Profile</a>
+                                <div class="dropdown-divider"></div>
+                                <form action="/logout" method="post" class="m-0 px-3 py-1">
+                                    <button class="dropdown-item text-danger" type="submit"><i
+                                            class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                                        Logout</button>
+                                </form>
+                            </div>
+                        </li>
+                    </ul>
+                </nav>
+
+                <div class="container-fluid">
+                    <%- body %>
+                </div>
+            </div>
+
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>© <%= new Date().getFullYear() %> Aqua Stock</span>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/js/sb-admin-2.min.js"></script>
+    
+    <% if (user && user.role === 'admin') { %>
+    <script>
+        (function() {
+            // Polling interval: 15 seconds
+            const POLLING_INTERVAL = 15000; 
+            
+            // Simpan lastCheck time di localStorage, default ke waktu saat ini
+            let lastCheck = localStorage.getItem('lastOrderCheckTime');
+            if (!lastCheck) {
+                lastCheck = Date.now();
+                localStorage.setItem('lastOrderCheckTime', lastCheck);
+            }
+
+            function checkNewOrders() {
+                fetch('/admin/orders/check-new?since=' + lastCheck)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.hasNew && data.orders.length > 0) {
+                            // Tampilkan notifikasi
+                            data.orders.forEach(order => {
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'top-end',
+                                    icon: 'info',
+                                    title: 'Pesanan Baru Masuk!',
+                                    html: `<b>${order.kode_order}</b> dari <b>${order.nama_cabang}</b>`,
+                                    showConfirmButton: true,
+                                    confirmButtonText: 'Lihat',
+                                    showCloseButton: true,
+                                    timer: 10000,
+                                    timerProgressBar: true
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        window.location.href = '/admin/orders';
+                                    }
+                                });
+                            });
+                            // Update lastCheck time ke order paling baru
+                            lastCheck = Math.max(...data.orders.map(o => o.createdAt || Date.now()));
+                            localStorage.setItem('lastOrderCheckTime', lastCheck);
+                        }
+                    })
+                    .catch(err => console.error("Error polling orders:", err));
+            }
+
+            // Jalankan polling
+            setInterval(checkNewOrders, POLLING_INTERVAL);
+        })();
+    </script>
+    <% } %>
+</body>
+
+</html>

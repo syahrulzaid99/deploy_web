@@ -1,0 +1,421 @@
+<div class="container-fluid">
+    <style>
+        /* Glassmorphism & Modern Premium Refinements */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        .container-fluid {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .aesthetic-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .aesthetic-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 5px 15px rgba(0, 0, 0, 0.04) !important;
+        }
+
+        .aesthetic-header {
+            background: rgba(248, 249, 252, 0.8) !important;
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.03) !important;
+            padding: 1.5rem !important;
+        }
+
+        .pill-badge {
+            padding: 0.5em 1.2em !important;
+            border-radius: 50rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            font-size: 0.75em !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            color: white !important;
+        }
+
+        .badge-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); }
+        .badge-info { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); }
+        .badge-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); }
+        .badge-danger { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); }
+        .badge-warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); }
+
+        .aesthetic-table { border-collapse: separate; border-spacing: 0; border: none; }
+        .aesthetic-table thead th {
+            border-bottom: 2px solid #e3e6f0;
+            background: #f8f9fc;
+            color: #858796;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.8px;
+            padding: 12px 8px;
+        }
+        .aesthetic-table tbody tr { transition: background 0.2s; }
+        .aesthetic-table tbody tr:hover { background-color: #f1f4fb; }
+        .aesthetic-table td { border-top: 1px solid #f1f3f9; vertical-align: middle; padding: 10px 8px; }
+
+        .kode-highlight {
+            color: #4e73df;
+            background: #eaecfb;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .grand-total-row { background: #fafbfc; }
+        .grand-total-text {
+            font-size: 1.3em !important;
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900 !important;
+        }
+    </style>
+
+    <div class="d-sm-flex align-items-center justify-content-between mb-4 mt-2">
+        <h1 class="h3 mb-0 page-title">Pesanan Saya</h1>
+        <button type="button" class="btn btn-sm btn-primary px-4 py-2 shadow-sm rounded-pill font-weight-bold" data-toggle="modal"
+            data-target="#modalTambahPesanan">
+            <i class="fas fa-plus mr-1"></i> Buat Pesanan Baru
+        </button>
+    </div>
+
+    <% var list = Array.isArray(orders) ? orders : []; %>
+
+    <% if (list.length === 0) { %>
+        <div class="card shadow mb-4 aesthetic-card">
+            <div class="card-body">
+                <div class="text-center py-5">
+                    <i class="fas fa-shopping-cart fa-3x text-gray-300 mb-3"></i>
+                    <p class="mb-0 text-muted">Belum ada pesanan yang dibuat.</p>
+                    <button class="btn btn-primary mt-3 rounded-pill" data-toggle="modal" data-target="#modalTambahPesanan">Buat Pesanan Pertama Anda</button>
+                </div>
+            </div>
+        </div>
+    <% } %>
+
+    <% for (var si = 0; si < list.length; si++) { %>
+        <% 
+            var o = list[si]; 
+            var st = (o.status || '').toLowerCase(); 
+            var badgeClass = 'badge badge-secondary'; 
+            if (st === 'pending') { badgeClass = 'badge badge-warning'; } 
+            if (st === 'diproses') { badgeClass = 'badge badge-info'; } 
+            if (st === 'dikirim') { badgeClass = 'badge badge-primary'; } 
+            if (st === 'selesai') { badgeClass = 'badge badge-success'; } 
+            if (st === 'ditolak') { badgeClass = 'badge badge-danger'; } 
+        %>
+
+        <div class="card aesthetic-card mb-4">
+            <div class="card-header aesthetic-header d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="font-weight-bold mb-2">
+                        Kode Order: <span class="kode-highlight"><%= o.kode_order %></span>
+                    </div>
+                    <div class="small text-muted">
+                        <i class="far fa-clock mr-1"></i> Tanggal: 
+                        <strong>
+                            <% if (o.createdAt) { %>
+                                <% 
+                                    var dateObj = new Date(o.createdAt._seconds ? o.createdAt._seconds * 1000 : o.createdAt);
+                                    var formattedDate = dateObj.toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit'});
+                                %>
+                                <%= formattedDate %>
+                            <% } else { %>
+                                -
+                            <% } %>
+                        </strong>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center" style="gap:12px;">
+                    <span class="<%= badgeClass %> pill-badge">
+                        <%= (o.status || 'pending').toUpperCase() %>
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body px-4 py-3">
+                <% if (o.keterangan) { %>
+                <div class="alert alert-light border py-2 px-3 mb-2" style="font-size: 0.9rem;">
+                    <i class="fas fa-sticky-note mr-2 text-muted"></i><strong>Catatan Anda:</strong> <%= o.keterangan %>
+                </div>
+                <% } %>
+                
+                <% if (o.keterangan_admin) { %>
+                <div class="alert alert-info py-2 px-3 mb-3" style="font-size: 0.9rem;">
+                    <i class="fas fa-comment-dots mr-2"></i><strong>Pesan Admin:</strong> <%= o.keterangan_admin %>
+                </div>
+                <% } %>
+
+                <div class="table-responsive mt-3">
+                    <table class="table aesthetic-table w-100 mb-2">
+                        <thead class="thead-light">
+                            <tr>
+                                <th style="width:48px;">#</th>
+                                <th style="width:64px;">Gambar</th>
+                                <th>SKU</th>
+                                <th>Nama Produk</th>
+                                <th style="width:120px;">Satuan</th>
+                                <th style="width:120px;" class="text-right">Harga</th>
+                                <th style="width:120px;" class="text-right">Qty</th>
+                                <th style="width:150px;" class="text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% var grandTotal = 0; %>
+                            <% var items = Array.isArray(o.items) ? o.items : []; 
+                               for (var i = 0; i < items.length; i++) { 
+                                   var it = items[i]; 
+                                   var sub = Number(it.subtotal || 0);
+                                   grandTotal += sub;
+                            %>
+                            <tr>
+                                <td><%= i + 1 %></td>
+                                <td class="text-center">
+                                    <% if (it.gambar_url) { %>
+                                        <img src="<%= it.gambar_url %>" alt="img" style="width:40px;height:40px;object-fit:cover;border-radius:4px;">
+                                    <% } else { %>
+                                        <span class="text-muted small">(no image)</span>
+                                    <% } %>
+                                </td>
+                                <td><%= it.sku || '-' %></td>
+                                <td><%= it.nama_produk || '-' %></td>
+                                <td><%= it.satuan || '-' %></td>
+                                <td class="text-right">Rp <%= Number(it.harga || 0).toLocaleString('id-ID') %></td>
+                                <td class="text-right font-weight-bold"><%= it.qty %></td>
+                                <td class="text-right font-weight-bold" style="color: #4e73df;">
+                                    Rp <%= sub.toLocaleString('id-ID') %>
+                                </td>
+                            </tr>
+                            <% } %>
+                        </tbody>
+                        <tfoot>
+                            <tr class="grand-total-row">
+                                <td colspan="7" class="text-right text-uppercase"
+                                    style="font-weight: 800; color: #858796; letter-spacing: 0.5px; vertical-align: middle;">
+                                    Grand Total
+                                </td>
+                                <td class="text-right grand-total-text">
+                                    Rp <%= grandTotal.toLocaleString('id-ID') %>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    <% } %>
+</div>
+
+<!-- Modal: Tambah Pesanan -->
+<div class="modal fade" id="modalTambahPesanan" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <form method="POST" action="/cabang/orders" id="formTambahPesanan">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="data_barang_json" id="data_barang_json">
+            
+            <div class="modal-content border-0" style="border-radius: 12px; overflow: hidden;">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title font-weight-bold"><i class="fas fa-cart-plus mr-2"></i>Buat Pesanan Baru</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Tutup">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body bg-light">
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="form-group mb-0">
+                                <label class="font-weight-bold text-gray-700">Catatan Pesanan (opsional)</label>
+                                <textarea name="keterangan" class="form-control" rows="2" placeholder="Cth: Mohon dikirimkan secepatnya."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center border-0 py-3">
+                            <h6 class="mb-0 font-weight-bold text-gray-800">Daftar Produk</h6>
+                            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 font-weight-bold" id="btnAddItem">
+                                <i class="fas fa-plus mr-1"></i> Tambah Item
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="tblItems">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th style="width:40px; border-top: none;">#</th>
+                                            <th style="border-top: none;">Produk (SKU - Nama)</th>
+                                            <th style="width:130px; border-top: none;" class="text-right">Kuantitas</th>
+                                            <th style="width:60px; border-top: none;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="itemsBody">
+                                        <!-- baris item akan ditambahkan via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Template baris item -->
+                    <template id="tplRow">
+                        <tr>
+                            <td class="row-index text-center align-middle text-muted font-weight-bold"></td>
+                            <td class="align-middle">
+                                <select class="form-control product-select shadow-sm border-0 bg-light" required>
+                                    <option value="">— pilih produk —</option>
+                                    <% var _p = Array.isArray(products) ? products : []; 
+                                       for (var j = 0; j < _p.length; j++) { var p = _p[j]; %>
+                                        <option value="<%= p.id %>" data-sku="<%= p.sku || '' %>" data-satuan="<%= p.satuan || '' %>">
+                                            <%= (p.sku||'-') %> — <%= (p.nama_produk||'-') %> (Rp <%= (p.harga_jual||0).toLocaleString('id-ID') %>)
+                                        </option>
+                                    <% } %>
+                                </select>
+                                <div class="small text-muted mt-1 detail-produk px-1"></div>
+                            </td>
+                            <td class="align-middle">
+                                <input type="number" class="form-control qty-input text-right font-weight-bold shadow-sm border-0" min="1" step="1" value="1" required>
+                            </td>
+                            <td class="text-center align-middle">
+                                <button type="button" class="btn btn-sm btn-light text-danger rounded-circle btnRemoveRow" style="width: 32px; height: 32px; padding: 0;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                </div>
+
+                <div class="modal-footer border-0 bg-white">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm font-weight-bold">
+                        <i class="fas fa-paper-plane mr-1"></i> Kirim Pesanan
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var body = document.getElementById('itemsBody');
+        var tpl = document.getElementById('tplRow');
+        var btnAdd = document.getElementById('btnAddItem');
+        var form = document.getElementById('formTambahPesanan');
+        var fieldJSON = document.getElementById('data_barang_json');
+
+        function renumber() {
+            var rows = body.querySelectorAll('tr');
+            rows.forEach(function (tr, idx) {
+                var idxCell = tr.querySelector('.row-index');
+                if (idxCell) idxCell.textContent = (idx + 1);
+            });
+        }
+
+        function updateDetail(selectEl) {
+            var opt = selectEl.options[selectEl.selectedIndex];
+            var info = '';
+            if (opt && opt.value) {
+                var satuan = opt.getAttribute('data-satuan') || '';
+                info = (satuan ? ('Satuan: ' + satuan) : '');
+            }
+            var detailDiv = selectEl.closest('td').querySelector('.detail-produk');
+            if (detailDiv) detailDiv.textContent = info;
+        }
+
+        function addRow() {
+            var clone = document.importNode(tpl.content, true);
+            var tr = clone.querySelector('tr');
+
+            var sel = tr.querySelector('.product-select');
+            sel.addEventListener('change', function () { updateDetail(sel); });
+
+            var btnDel = tr.querySelector('.btnRemoveRow');
+            btnDel.addEventListener('click', function () {
+                tr.parentNode.removeChild(tr);
+                renumber();
+            });
+
+            body.appendChild(tr);
+            renumber();
+        }
+
+        if (btnAdd) btnAdd.addEventListener('click', addRow);
+
+        $('#modalTambahPesanan').on('shown.bs.modal', function () {
+            if (!body.querySelector('tr')) addRow();
+        }).on('hidden.bs.modal', function () {
+            body.innerHTML = '';
+            form.reset();
+            if (fieldJSON) fieldJSON.value = '';
+        });
+
+        if (form) form.addEventListener('submit', function (ev) {
+            try {
+                var rows = body.querySelectorAll('tr');
+                if (!rows.length) {
+                    ev.preventDefault();
+                    Swal.fire({icon: 'warning', title: 'Oops...', text: 'Silakan tambahkan minimal 1 item produk.'});
+                    return false;
+                }
+
+                var items = [];
+                var isValid = true;
+                rows.forEach(function (tr) {
+                    var sel = tr.querySelector('.product-select');
+                    var qtyEl = tr.querySelector('.qty-input');
+                    var pid = sel ? sel.value : '';
+                    var qty = qtyEl ? Number(qtyEl.value) : 0;
+
+                    if (pid && qty > 0) {
+                        items.push({ product_id: pid, qty: qty });
+                    } else {
+                        isValid = false;
+                    }
+                });
+
+                if (!isValid || !items.length) {
+                    ev.preventDefault();
+                    Swal.fire({icon: 'error', title: 'Data Tidak Lengkap', text: 'Pastikan Anda telah memilih produk dan kuantitas lebih dari 0 untuk semua baris.'});
+                    return false;
+                }
+
+                fieldJSON.value = JSON.stringify(items);
+            } catch (e) {
+                ev.preventDefault();
+                alert('Terjadi kesalahan saat menyiapkan data.');
+                return false;
+            }
+        });
+
+        // Notifikasi via Swal
+        var params = new URLSearchParams(window.location.search);
+        var ok = params.get('ok');
+        var err = params.get('err');
+
+        function hasSwal() { return typeof Swal !== 'undefined' && Swal && Swal.fire; }
+
+        if (ok && hasSwal()) {
+            var title = ok === 'created' ? 'Pesanan berhasil dikirim!' : 'Berhasil';
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: title, showConfirmButton: false, timer: 3000, timerProgressBar: true });
+            params.delete('ok');
+            var url = location.pathname + (params.toString() ? '?' + params.toString() : '');
+            window.history.replaceState({}, '', url);
+        }
+
+        if (err && hasSwal()) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: err });
+            params.delete('err');
+            var url2 = location.pathname + (params.toString() ? '?' + params.toString() : '');
+            window.history.replaceState({}, '', url2);
+        }
+    })();
+</script>

@@ -1,0 +1,533 @@
+<div class="container-fluid">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        .container-fluid {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .page-title {
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #2e3440;
+        }
+
+        .aesthetic-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .aesthetic-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 5px 15px rgba(0, 0, 0, 0.04) !important;
+        }
+
+        .aesthetic-header {
+            background: rgba(248, 249, 252, 0.8) !important;
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.03) !important;
+            padding: 1.25rem 1.5rem !important;
+        }
+
+        .pill-badge {
+            padding: 0.5em 1.2em !important;
+            border-radius: 50rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            font-size: 0.75em !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            color: white !important;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+        }
+
+        .badge-info {
+            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+        }
+
+        .badge-secondary {
+            background: linear-gradient(135deg, #858796 0%, #60616f 100%);
+        }
+
+        .badge-danger {
+            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+        }
+
+        .kode-highlight {
+            color: #4e73df;
+            background: #eaecfb;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .aesthetic-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            border: none;
+        }
+
+        .aesthetic-table thead th {
+            border-bottom: 2px solid #e3e6f0;
+            background: #f8f9fc;
+            color: #858796;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.8px;
+            padding: 12px 8px;
+        }
+
+        .aesthetic-table tbody tr {
+            transition: background 0.2s;
+        }
+
+        .aesthetic-table tbody tr:hover {
+            background-color: #f1f4fb;
+        }
+
+        .aesthetic-table td {
+            border-top: 1px solid #f1f3f9;
+            vertical-align: middle;
+            padding: 10px 8px;
+        }
+
+        .grand-total-row {
+            background: #fafbfc;
+        }
+
+        .grand-total-text {
+            font-size: 1.15em !important;
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900 !important;
+        }
+
+        .section-card {
+            border: none;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: #fff;
+            padding: 0.9rem 1rem;
+        }
+
+        .section-header.secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .bukti-img {
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-radius: 8px;
+            border: 2px solid #fff;
+        }
+
+        .bukti-img:hover {
+            transform: scale(1.15) rotate(2deg);
+            z-index: 10;
+        }
+
+        .soft-panel {
+            background: #f8f9fc;
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .text-muted-strong {
+            color: #6c757d !important;
+            font-weight: 500;
+        }
+
+        .btn-modern-primary {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            border: none;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(78, 115, 223, 0.3);
+        }
+
+        .btn-modern-primary:hover {
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(78, 115, 223, 0.4);
+        }
+
+        .btn-modern-success {
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+            border: none;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(28, 200, 138, 0.3);
+        }
+
+        .btn-modern-success:hover {
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(28, 200, 138, 0.4);
+        }
+
+        .btn-modern-danger {
+            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+            border: none;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(231, 74, 59, 0.3);
+        }
+
+        .btn-modern-danger:hover {
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(231, 74, 59, 0.4);
+        }
+    </style>
+
+    <div class="d-sm-flex align-items-center justify-content-between mb-4 mt-2">
+        <h1 class="h3 mb-0 page-title">Pengiriman Masuk (Cabang)</h1>
+    </div>
+
+    <% var list=Array.isArray(shipments) ? shipments : []; %>
+
+        <% if (list.length===0) { %>
+            <div class="card shadow mb-4">
+                <div class="card-body">
+                    <p class="mb-0">Tidak ada pengiriman.</p>
+                </div>
+            </div>
+            <% } %>
+
+                <% for (var si=0; si < list.length; si++) { %>
+                    <% var s=list[si]; var pengirim=(usersMap && usersMap[s.pengirim]) ? usersMap[s.pengirim] : null;
+                        var penerima=(usersMap && usersMap[s.penerima]) ? usersMap[s.penerima] : null; var st=(s.status
+                        || '' ).toLowerCase(); var badgeClass='badge badge-secondary' ; if (st==='terkirim' ||
+                        st==='dikirim' ) { badgeClass='badge badge-info' ; } if (st==='diterima' ) {
+                        badgeClass='badge badge-success' ; } if (st==='ditolak' ) { badgeClass='badge badge-danger' ; }
+                        %>
+
+                        <div class="card aesthetic-card mb-4">
+                            <div class="card-header aesthetic-header d-flex justify-content-between align-items-center flex-wrap"
+                                style="gap:12px;">
+                                <div>
+                                    <div class="font-weight-bold mb-2">
+                                        Kode Resi:
+                                        <span class="kode-highlight">
+                                            <%= s.kode_pengiriman %>
+                                        </span>
+                                    </div>
+                                    <div class="small text-muted mb-1" style="font-size: 0.85rem">
+                                        <i class="fas fa-file-invoice mr-1"></i> PO: <strong>
+                                            <%= s.po_number || '-' %>
+                                        </strong>
+                                        <span class="mx-2">•</span>
+                                        SO: <strong>
+                                            <%= s.so_number || '-' %>
+                                        </strong>
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="fas fa-truck mr-1"></i> Pengirim: <strong>
+                                            <%= pengirim ? pengirim.username : s.pengirim %>
+                                        </strong>
+                                        <span class="text-primary mx-2">→</span>
+                                        Penerima: <strong>
+                                            <%= penerima ? penerima.username : s.penerima %>
+                                        </strong>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center" style="gap:10px;">
+                                    <span class="<%= badgeClass %> pill-badge">
+                                        <%= (s.status || 'draft' ).toUpperCase() %>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="card-body px-4 py-3">
+                                <div class="section-card mb-4">
+                                    <div class="section-header">
+                                        <h6 class="m-0 font-weight-bold text-white">Daftar Produk</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table aesthetic-table table-sm mb-2 w-100">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="width:48px;">#</th>
+                                                        <th style="width:64px;">Gambar</th>
+                                                        <th>SKU</th>
+                                                        <th>Nama Produk</th>
+                                                        <th style="width:120px;">Satuan</th>
+                                                        <th style="width:160px;">Barcode</th>
+                                                        <th style="width:120px;" class="text-right">Qty Dikirim</th>
+                                                        <th style="width:120px;" class="text-right">Qty Diterima</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <% var grandTotal=0; var items=Array.isArray(s._items) ? s._items :
+                                                        (Array.isArray(s.data_barang) ? s.data_barang : []); for (var
+                                                        i=0; i < items.length; i++) { var it=items[i]; var p=(it &&
+                                                        it._p) ? it._p : null; var qtyKirim=0; if (it && it._qty !=null)
+                                                        { qtyKirim=Number(it._qty); } else if (it && it.qty !=null) {
+                                                        qtyKirim=Number(it.qty); } else if (it && it.jumlah !=null) {
+                                                        qtyKirim=Number(it.jumlah); } else if (it && it.quantity !=null)
+                                                        { qtyKirim=Number(it.quantity); } else if (it && it.qty_in
+                                                        !=null) { qtyKirim=Number(it.qty_in); } else if (it &&
+                                                        it.qty_out !=null) { qtyKirim=Number(it.qty_out); } var
+                                                        qtyTerima=null; if (it && it.qty_diterima !=null) {
+                                                        qtyTerima=Number(it.qty_diterima); } var sku='-' ; if (p &&
+                                                        p.sku) { sku=p.sku; } else if (it && it.sku) { sku=it.sku; } var
+                                                        nama='-' ; if (p && p.nama_produk) { nama=p.nama_produk; } else
+                                                        if (it && (it.nama || it.nama_produk)) { nama=it.nama ||
+                                                        it.nama_produk; } var satuan='-' ; if (p && p.satuan) {
+                                                        satuan=p.satuan; } else if (it && it.satuan) { satuan=it.satuan;
+                                                        } var barcode='-' ; if (p && p.barcode) { barcode=p.barcode; }
+                                                        else if (it && it.barcode) { barcode=it.barcode; } var img='' ;
+                                                        if (p && p.gambar_url) { img=p.gambar_url; } var
+                                                        netVal=Number(it && it.item_net_value) || 0; var tax=Number(it
+                                                        && it.item_tax) || 0; grandTotal +=qtyKirim * (netVal + tax); %>
+                                                        <tr>
+                                                            <td>
+                                                                <%= i + 1 %>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <% if (img) { %>
+                                                                    <img src="<%= img %>" alt="img"
+                                                                        style="width:44px;height:44px;object-fit:cover;border-radius:4px;">
+                                                                    <% } else { %>
+                                                                        <span class="text-muted small">(no image)</span>
+                                                                        <% } %>
+                                                            </td>
+                                                            <td>
+                                                                <%= sku %>
+                                                            </td>
+                                                            <td>
+                                                                <%= nama %>
+                                                            </td>
+                                                            <td>
+                                                                <%= satuan %>
+                                                            </td>
+                                                            <td>
+                                                                <%= barcode %>
+                                                            </td>
+                                                            <td class="text-right">
+                                                                <%= qtyKirim %>
+                                                            </td>
+                                                            <td class="text-right">
+                                                                <% if (st==='diterima' && qtyTerima !=null) { %>
+                                                                    <%= qtyTerima %>
+                                                                        <% var warnKurang=false; if
+                                                                            (Number.isFinite(qtyKirim) &&
+                                                                            Number.isFinite(qtyTerima) && qtyTerima <
+                                                                            qtyKirim) { warnKurang=true; } %>
+                                                                            <% if (warnKurang) { %>
+                                                                                <span
+                                                                                    class="badge badge-warning">kurang</span>
+                                                                                <% } %>
+                                                                                    <% } else { %>
+                                                                                        -
+                                                                                        <% } %>
+                                                            </td>
+                                                        </tr>
+                                                        <% } %>
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr class="grand-total-row">
+                                                        <td colspan="6" class="text-right text-uppercase"
+                                                            style="font-weight: 800; color: #858796; letter-spacing: 0.5px; vertical-align: middle;">
+                                                            Grand Total Transaksi
+                                                        </td>
+                                                        <td colspan="2" class="text-right grand-total-text">
+                                                            Rp <%= grandTotal.toLocaleString('id-ID') %>
+                                                        </td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="section-card mb-1">
+                                    <div class="section-header secondary">
+                                        <h6 class="m-0 font-weight-bold text-white">Data Konfirmasi</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <% if (st !=='diterima' && st !=='ditolak' ) { %>
+                                            <form method="POST" action="/cabang/shipments/<%= s.id %>/confirm"
+                                                enctype="multipart/form-data">
+                                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                                <input type="hidden" name="aksi" value="diterima">
+
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered table-sm">
+                                                        <thead class="thead-light">
+                                                            <tr>
+                                                                <th style="width:48px;">#</th>
+                                                                <th>Produk</th>
+                                                                <th class="text-right" style="width:120px;">Qty Dikirim
+                                                                </th>
+                                                                <th style="width:140px;">Qty Diterima</th>
+                                                                <th>Catatan Item</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <% var items2=Array.isArray(s._items) ? s._items :
+                                                                (Array.isArray(s.data_barang) ? s.data_barang : []); for
+                                                                (var j=0; j < items2.length; j++) { var it2=items2[j];
+                                                                var p2=(it2 && it2._p) ? it2._p : null; var qtyKirim2=0;
+                                                                if (it2 && it2._qty !=null) {
+                                                                qtyKirim2=Number(it2._qty); } else if (it2 && it2.qty
+                                                                !=null) { qtyKirim2=Number(it2.qty); } else if (it2 &&
+                                                                it2.jumlah !=null) { qtyKirim2=Number(it2.jumlah); }
+                                                                else if (it2 && it2.quantity !=null) {
+                                                                qtyKirim2=Number(it2.quantity); } else if (it2 &&
+                                                                it2.qty_in !=null) { qtyKirim2=Number(it2.qty_in); }
+                                                                else if (it2 && it2.qty_out !=null) {
+                                                                qtyKirim2=Number(it2.qty_out); } var labelProduk='-' ;
+                                                                if (p2 && p2.sku) { labelProduk=p2.sku + ' — ' +
+                                                                (p2.nama_produk || '' ); } else if (it2 && (it2.sku ||
+                                                                it2.nama || it2.nama_produk)) { var lpSku=it2.sku ?
+                                                                it2.sku : '' ; var lpNama=it2.nama ? it2.nama :
+                                                                (it2.nama_produk ? it2.nama_produk : '' );
+                                                                labelProduk=(lpSku + ' ' + lpNama).trim(); } %>
+                                                                <tr>
+                                                                    <td>
+                                                                        <%= j + 1 %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <%= labelProduk %>
+                                                                    </td>
+                                                                    <td class="text-right">
+                                                                        <%= qtyKirim2 %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <input type="number" name="qty_diterima"
+                                                                            class="form-control form-control-sm" min="0"
+                                                                            step="1" value="<%= qtyKirim2 %>">
+                                                                    </td>
+                                                                    <td>
+                                                                        <input type="text" name="catatan_item"
+                                                                            class="form-control form-control-sm"
+                                                                            placeholder="Catatan per item (opsional)">
+                                                                    </td>
+                                                                </tr>
+                                                                <% } %>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <label class="mb-1">Foto Bukti (opsional, bisa lebih dari
+                                                        satu)</label>
+                                                    <input type="file" name="bukti_foto" multiple accept="image/*"
+                                                        class="form-control-file">
+                                                    <small class="form-text text-muted">Format: jpg/png/webp/gif, maks
+                                                        5MB per file.</small>
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <label class="mb-1">Catatan (opsional)</label>
+                                                    <textarea name="keterangan" class="form-control form-control-sm"
+                                                        rows="2" placeholder="Catatan umum"></textarea>
+                                                </div>
+
+                                                <button type="submit" class="btn btn-sm btn-modern-success mr-2">
+                                                    <i class="fas fa-check"></i> Simpan Konfirmasi
+                                                </button>
+
+                                                <button type="submit" formaction="/cabang/shipments/<%= s.id %>/confirm"
+                                                    formmethod="POST" name="aksi" value="ditolak"
+                                                    class="btn btn-outline-danger btn-sm">
+                                                    <i class="fas fa-times"></i> Tolak Pengiriman
+                                                </button>
+                                            </form>
+                                            <% } else { %>
+                                                <div class="soft-panel">
+                                                    <div class="mb-2">
+                                                        <strong>Keterangan:</strong>
+                                                        <%= (s.keterangan !=null && s.keterangan !=='' ) ? s.keterangan
+                                                            : '-' %>
+                                                    </div>
+
+                                                    <% if (Array.isArray(s.bukti_penerimaan_urls) &&
+                                                        s.bukti_penerimaan_urls.length) { %>
+                                                        <div class="mt-2">
+                                                            <div class="mb-1 font-weight-bold text-primary">Bukti
+                                                                Penerimaan:</div>
+                                                            <div class="d-flex flex-wrap" style="gap:8px;">
+                                                                <% for (var b=0; b < s.bukti_penerimaan_urls.length;
+                                                                    b++) { %>
+                                                                    <a href="<%= s.bukti_penerimaan_urls[b] %>"
+                                                                        target="_blank">
+                                                                        <img src="<%= s.bukti_penerimaan_urls[b] %>"
+                                                                            class="bukti-img"
+                                                                            style="width:80px;height:80px;object-fit:cover;">
+                                                                    </a>
+                                                                    <% } %>
+                                                            </div>
+                                                        </div>
+                                                        <% } %>
+                                                </div>
+                                                <% } %>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <% } %>
+</div>
+
+<script>
+    $(function () {
+        const params = new URLSearchParams(window.location.search);
+        const ok = params.get('ok');
+        const err = params.get('err');
+
+        function hasSwal() {
+            return typeof Swal !== 'undefined' && Swal && Swal.fire;
+        }
+
+        if (ok && hasSwal()) {
+            let title = 'Berhasil';
+            if (ok === 'created') title = 'Pengiriman dibuat';
+            if (ok === 'updated') title = 'Perubahan disimpan';
+            if (ok === 'deleted') title = 'Pengiriman dihapus';
+            if (ok === 'confirmed') title = 'Konfirmasi tersimpan';
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: title,
+                showConfirmButton: false,
+                timer: 2200,
+                timerProgressBar: true
+            });
+
+            params.delete('ok');
+            const url = location.pathname + (params.toString() ? '?' + params.toString() : '');
+            window.history.replaceState({}, '', url);
+        }
+
+        if (err && hasSwal()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: err,
+                confirmButtonText: 'OK'
+            });
+
+            params.delete('err');
+            const url = location.pathname + (params.toString() ? '?' + params.toString() : '');
+            window.history.replaceState({}, '', url);
+        }
+    });
+</script>

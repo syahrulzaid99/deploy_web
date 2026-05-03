@@ -1,0 +1,281 @@
+<% /* Halaman daftar users dengan modals Create/Edit/Delete */ %>
+
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Users</h1>
+        <button class="btn btn-primary" data-toggle="modal" data-target="#modalCreate">
+            <i class="fas fa-plus"></i> Tambah User
+        </button>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Daftar Users</h6>
+            <div class="input-group" style="max-width: 250px;">
+                <input id="tableSearch" class="form-control form-control-sm" placeholder="Cari ...">
+                <div class="input-group-append">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="usersTable">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Cabang</th>
+                            <th>Provinsi</th>
+                            <th>Kota</th>
+                            <th>Jalan</th>
+                            <th style="width:120px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% users.forEach(u=> { %>
+                            <tr>
+                                <td>
+                                    <%= u.username %>
+                                </td>
+                                <td><span class="badge <%= u.role==='admin'?'badge-primary':'badge-secondary' %>">
+                                        <%= u.role %>
+                                    </span></td>
+                                <td>
+                                    <%= u.nama_cabang || '-' %>
+                                </td>
+                                <td>
+                                    <%= u.provinsi || '-' %>
+                                </td>
+                                <td>
+                                    <%= u.kota || '-' %>
+                                </td>
+                                <td>
+                                    <%= u.jalan || '-' %>
+                                </td>
+                                <td class="text-nowrap">
+                                    <button type="button" class="btn btn-sm btn-info" data-toggle="modal"
+                                        data-target="#modalEdit" data-id="<%= u.id %>" data-username="<%= u.username %>"
+                                        data-role="<%= u.role %>" data-nama-cabang="<%= u.nama_cabang || '' %>"
+                                        data-provinsi="<%= u.provinsi || '' %>" data-kota="<%= u.kota || '' %>"
+                                        data-jalan="<%= u.jalan || '' %>">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+
+                                    <button type="button" class="btn btn-sm btn-danger btn-del" data-toggle="modal"
+                                        data-target="#modalDelete" data-id="<%= u.id %>"
+                                        data-username="<%= u.username %>">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- CREATE MODAL -->
+    <div class="modal fade" id="modalCreate" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <form method="post" action="/admin/users" class="modal-content">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tambah User</h5>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Username</label>
+                            <input name="username" class="form-control" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Password</label>
+                            <input name="password" type="password" class="form-control" required minlength="6">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label>Role</label>
+                            <select name="role" class="form-control" required>
+                                <option value="admin">admin</option>
+                                <option value="cabang">cabang</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-8">
+                            <label>Nama Cabang</label>
+                            <input name="nama_cabang" class="form-control" placeholder="mis. Cabang Bandung">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label>Provinsi</label>
+                            <input name="provinsi" class="form-control">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>Kota</label>
+                            <input name="kota" class="form-control">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>Jalan</label>
+                            <input name="jalan" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Batal</button>
+                    <button class="btn btn-primary" type="submit">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div class="modal fade" id="modalEdit" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <form id="formEdit" method="post" class="modal-content">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit User</h5>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Username</label>
+                            <input name="username" id="edit_username" class="form-control" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Password (kosongkan jika tidak diubah)</label>
+                            <input name="password" id="edit_password" type="password" class="form-control"
+                                minlength="6">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label>Role</label>
+                            <select name="role" id="edit_role" class="form-control" required>
+                                <option value="admin">admin</option>
+                                <option value="cabang">cabang</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-8">
+                            <label>Nama Cabang</label>
+                            <input name="nama_cabang" id="edit_nama_cabang" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label>Provinsi</label>
+                            <input name="provinsi" id="edit_provinsi" class="form-control">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>Kota</label>
+                            <input name="kota" id="edit_kota" class="form-control">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>Jalan</label>
+                            <input name="jalan" id="edit_jalan" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Batal</button>
+                    <button class="btn btn-primary" type="submit">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- OPTIONAL: DataTables -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs4/1.13.6/dataTables.bootstrap4.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net/1.13.6/jquery.dataTables.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs4/1.13.6/dataTables.bootstrap4.min.js"></script>
+
+    <script>
+        $(function () {
+            // ===================== DataTables & Search (punyamu) =====================
+            const dt = $('#usersTable').DataTable({
+                pageLength: 10,
+                lengthChange: false,
+                order: [[0, 'asc']]
+            });
+            $('#usersTable_filter').hide(); // sembunyikan search default DataTables
+            $('#tableSearch').on('keyup', function () { dt.search(this.value).draw(); });
+
+            // ===================== EDIT MODAL (fix e.relatedTarget) ==================
+            $('#modalEdit').on('show.bs.modal', function (e) {
+                const $btn = $(e.relatedTarget).closest('button');
+                const id = $btn.data('id');
+
+                $('#formEdit').attr('action', '/admin/users/' + id);
+                $('#edit_username').val($btn.data('username'));
+                $('#edit_role').val($btn.data('role'));
+                $('#edit_nama_cabang').val($btn.data('namaCabang'));
+                $('#edit_provinsi').val($btn.data('provinsi'));
+                $('#edit_kota').val($btn.data('kota'));
+                $('#edit_jalan').val($btn.data('jalan'));
+                $('#edit_password').val('');
+            });
+
+            // ===================== DELETE: SweetAlert confirm ========================
+            // ubah tombol hapus: tambahkan class 'btn-del' di HTML tombol hapus
+            $('.btn-del').on('click', function () {
+                const $btn = $(this);
+                const id = $btn.data('id');
+                const uname = $btn.data('username');
+
+                Swal.fire({
+                    title: 'Hapus user?',
+                    html: `User <b>${uname}</b> akan dihapus permanen.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, hapus',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true
+                }).then((r) => {
+                    if (r.isConfirmed) {
+                        // submit POST dengan CSRF
+                        const form = $('<form>', { method: 'post', action: '/admin/users/' + id + '/delete' });
+                        form.append($('<input>', { type: 'hidden', name: '_csrf', value: '<%= csrfToken %>' }));
+                        $('body').append(form);
+                        form.trigger('submit');
+                    }
+                });
+            });
+
+            // ===================== TOAST sukses/gagal (hasil redirect) ==============
+            const params = new URLSearchParams(window.location.search);
+            const ok = params.get('ok');
+            const err = params.get('err');
+
+            if (ok) {
+                let title = 'Berhasil';
+                if (ok === 'created') title = 'User berhasil dibuat';
+                if (ok === 'updated') title = 'Perubahan disimpan';
+                if (ok === 'deleted') title = 'User dihapus';
+
+                Swal.fire({
+                    toast: true, position: 'top-end', icon: 'success', title,
+                    showConfirmButton: false, timer: 2200, timerProgressBar: true
+                });
+                // bersihkan query agar toast tidak muncul lagi saat refresh/back
+                params.delete('ok'); const url = location.pathname + (params.toString() ? '?' + params.toString() : '');
+                window.history.replaceState({}, '', url);
+            }
+
+            if (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: err,
+                    confirmButtonText: 'OK'
+                });
+                params.delete('err'); const url = location.pathname + (params.toString() ? '?' + params.toString() : '');
+                window.history.replaceState({}, '', url);
+            }
+        });
+    </script>

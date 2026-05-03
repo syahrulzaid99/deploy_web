@@ -1,0 +1,685 @@
+<div class="container-fluid">
+    <style>
+        /* Glassmorphism & Modern Premium Refinements */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        .container-fluid {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .aesthetic-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .aesthetic-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 5px 15px rgba(0, 0, 0, 0.04) !important;
+        }
+
+        .aesthetic-header {
+            background: rgba(248, 249, 252, 0.8) !important;
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.03) !important;
+            padding: 1.5rem !important;
+        }
+
+        .btn-modern-danger {
+            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(231, 74, 59, 0.3);
+        }
+
+        .btn-modern-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(231, 74, 59, 0.4);
+            color: #fff;
+        }
+
+        .pill-badge {
+            padding: 0.5em 1.2em !important;
+            border-radius: 50rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            font-size: 0.75em !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            color: white !important;
+        }
+
+        .badge-success {
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+        }
+
+        .badge-info {
+            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+        }
+
+        .badge-secondary {
+            background: linear-gradient(135deg, #858796 0%, #60616f 100%);
+        }
+
+        .badge-danger {
+            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+        }
+
+        .aesthetic-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            border: none;
+        }
+
+        .aesthetic-table thead th {
+            border-bottom: 2px solid #e3e6f0;
+            background: #f8f9fc;
+            color: #858796;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.8px;
+            padding: 12px 8px;
+        }
+
+        .aesthetic-table tbody tr {
+            transition: background 0.2s;
+        }
+
+        .aesthetic-table tbody tr:hover {
+            background-color: #f1f4fb;
+        }
+
+        .aesthetic-table td {
+            border-top: 1px solid #f1f3f9;
+            vertical-align: middle;
+            padding: 10px 8px;
+        }
+
+        .kode-highlight {
+            color: #4e73df;
+            background: #eaecfb;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .grand-total-row {
+            background: #fafbfc;
+        }
+
+        .grand-total-text {
+            font-size: 1.3em !important;
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900 !important;
+        }
+
+        .bukti-img {
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-radius: 8px;
+            border: 2px solid #fff;
+        }
+
+        .bukti-img:hover {
+            transform: scale(1.15) rotate(2deg);
+            z-index: 10;
+        }
+    </style>
+    <div class="d-sm-flex align-items-center justify-content-between mb-4 mt-2">
+        <h1 class="h3 mb-0 page-title">Manajemen Pengiriman</h1>
+        <button type="button" class="btn btn-sm btn-modern btn-modern-primary px-4 py-2" data-toggle="modal"
+            data-target="#modalTambahPengiriman">
+            <i class="fas fa-plus mr-1"></i> Buat Pengiriman Baru
+        </button>
+    </div>
+
+    <% var list=Array.isArray(shipments) ? shipments : []; %>
+
+        <% if (list.length===0) { %>
+            <div class="card shadow mb-4">
+                <div class="card-body">
+                    <p class="mb-0">Tidak ada pengiriman.</p>
+                </div>
+            </div>
+            <% } %>
+
+                <% for (var si=0; si < list.length; si++) { %>
+                    <% var s=list[si]; var st=(s.status || '' ).toLowerCase(); var pengirim=(usersMap &&
+                        usersMap[s.pengirim]) ? usersMap[s.pengirim] : null; var penerima=(usersMap &&
+                        usersMap[s.penerima]) ? usersMap[s.penerima] : null; var badgeClass='badge badge-secondary' ; if
+                        (st==='terkirim' || st==='dikirim' ) { badgeClass='badge badge-info' ; } if (st==='diterima' ) {
+                        badgeClass='badge badge-success' ; } if (st==='ditolak' ) { badgeClass='badge badge-danger' ; }
+                        %>
+
+                        <div class="card aesthetic-card mb-4">
+                            <div class="card-header aesthetic-header d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="font-weight-bold mb-2">
+                                        Kode Resi: <span class="kode-highlight">
+                                            <%= s.kode_pengiriman %>
+                                        </span>
+                                    </div>
+                                    <div class="small text-muted mb-1" style="font-size: 0.85rem">
+                                        <i class="fas fa-file-invoice mr-1"></i> PO: <strong>
+                                            <%= s.po_number || '-' %>
+                                        </strong> <span class="mx-2">•</span> SO: <strong>
+                                            <%= s.so_number || '-' %>
+                                        </strong>
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="fas fa-truck mr-1"></i> Asal: <strong>
+                                            <%= pengirim ? pengirim.username : s.pengirim %>
+                                        </strong> <span class="text-primary mx-2">→</span> Tujuan: <strong>
+                                            <%= penerima ? penerima.username : s.penerima %>
+                                        </strong>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center" style="gap:12px;">
+                                    <span class="<%= badgeClass %> pill-badge">
+                                        <%= (s.status || 'draft' ).toUpperCase() %>
+                                    </span>
+                                    <a class="badge badge-primary pill-badge"
+                                        style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);"
+                                        href="/admin/shipments/<%= s.id %>/resi" target="_blank"><i
+                                            class="fas fa-print mr-1"></i> Cetak Resi</a>
+                                    <form method="POST" action="/admin/shipments/<%= s.id %>/delete" class="d-inline"
+                                        data-confirm>
+                                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                        <button type="submit" class="btn btn-sm btn-modern btn-modern-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="card-body px-4 py-3">
+                                <div class="table-responsive">
+                                    <table class="table aesthetic-table w-100 mb-2">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th style="width:48px;">#</th>
+                                                <th style="width:64px;">Gambar</th>
+                                                <th>SKU</th>
+                                                <th>Nama Produk</th>
+                                                <th style="width:120px;">Satuan</th>
+                                                <th style="width:160px;">Barcode</th>
+                                                <th style="width:120px;" class="text-right">Harga</th>
+                                                <th style="width:100px;" class="text-right">Qty Kirim</th>
+                                                <th style="width:100px;" class="text-right">Qty Terima</th>
+                                                <th style="width:140px;" class="text-right">Subtotal</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% var grandTotal=0; %>
+                                                <% var items=Array.isArray(s.data_barang) ? s.data_barang : []; for (var
+                                                    i=0; i < items.length; i++) { var it=items[i]; var p=null; var
+                                                    pid=it.product_id || it.produk_id || it.productId || it.id ||
+                                                    it.product || it.pid || it.id_produk; if (pid && productsMap &&
+                                                    productsMap[pid]) { p=productsMap[pid]; } var qtyKirim=0; if (it &&
+                                                    it._qty !=null) { qtyKirim=Number(it._qty); } else if (it && it.qty
+                                                    !=null) { qtyKirim=Number(it.qty); } else if (it && it.jumlah
+                                                    !=null) { qtyKirim=Number(it.jumlah); } else if (it && it.quantity
+                                                    !=null) { qtyKirim=Number(it.quantity); } else if (it && it.qty_in
+                                                    !=null) { qtyKirim=Number(it.qty_in); } else if (it && it.qty_out
+                                                    !=null) { qtyKirim=Number(it.qty_out); } var qtyTerima=null; if (it
+                                                    && it.qty_diterima !=null) { qtyTerima=Number(it.qty_diterima); }
+                                                    var sku='-' ; if (p && p.sku) { sku=p.sku; } else if (it && it.sku)
+                                                    { sku=it.sku; } var nama='-' ; if (p && p.nama_produk) {
+                                                    nama=p.nama_produk; } else if (it && it.nama) { nama=it.nama; } else
+                                                    if (it && it.nama_produk) { nama=it.nama_produk; } var satuan='-' ;
+                                                    if (p && p.satuan) { satuan=p.satuan; } else if (it && it.satuan) {
+                                                    satuan=it.satuan; } var barcode='-' ; if (p && p.barcode) {
+                                                    barcode=p.barcode; } else if (it && it.barcode) {
+                                                    barcode=it.barcode; } var img='' ; if (p && p.gambar_url) {
+                                                    img=p.gambar_url; } 
+                                                    var netVal=Number(it.item_net_value || it.harga) || 0; 
+                                                    var tax=Number(it.item_tax) || 0; 
+                                                    var unitPrice = netVal + tax;
+                                                    var subtotal = qtyKirim * unitPrice;
+                                                    grandTotal += subtotal; %>
+                                                    <tr>
+                                                        <td>
+                                                            <%= i + 1 %>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <% if (img) { %>
+                                                                <img src="<%= img %>" alt="img"
+                                                                    style="width:44px;height:44px;object-fit:cover;border-radius:4px;">
+                                                                <% } else { %>
+                                                                    <span class="text-muted small">(no image)</span>
+                                                                    <% } %>
+                                                        </td>
+                                                        <td>
+                                                            <%= sku %>
+                                                        </td>
+                                                        <td>
+                                                            <%= nama %>
+                                                        </td>
+                                                        <td>
+                                                            <%= satuan %>
+                                                        </td>
+                                                        <td>
+                                                            <%= barcode %>
+                                                        </td>
+                                                        <td class="text-right">
+                                                            Rp <%= unitPrice.toLocaleString('id-ID') %>
+                                                        </td>
+                                                        <td class="text-right font-weight-bold">
+                                                            <%= qtyKirim %>
+                                                        </td>
+                                                        <td class="text-right">
+                                                            <% if (st==='diterima' && qtyTerima !=null) { %>
+                                                                <%= qtyTerima %>
+                                                                    <% var kurang=false; if (!isNaN(qtyKirim) &&
+                                                                        !isNaN(qtyTerima) && qtyTerima < qtyKirim) {
+                                                                        kurang=true; } %>
+                                                                        <% if (kurang) { %><span
+                                                                                class="badge badge-warning">kurang</span>
+                                                                            <% } %>
+                                                                                <% } else { %>
+                                                                                    -
+                                                                                    <% } %>
+                                                        </td>
+                                                        <td class="text-right font-weight-bold text-primary">
+                                                            Rp <%= subtotal.toLocaleString('id-ID') %>
+                                                        </td>
+                                                    </tr>
+                                                    <% } %>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="grand-total-row">
+                                                <td colspan="8" class="text-right text-uppercase"
+                                                    style="font-weight: 800; color: #858796; letter-spacing: 0.5px; vertical-align: middle;">
+                                                    Grand Total Transaksi</td>
+                                                <td colspan="2" class="text-right grand-total-text">
+                                                    Rp <%= grandTotal.toLocaleString('id-ID') %>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+
+                                <% if (st==='diterima' && Array.isArray(s.bukti_penerimaan_urls) &&
+                                    s.bukti_penerimaan_urls.length) { %>
+                                    <div class="mt-4 p-3 rounded" style="background: #f8f9fc;">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-2"><i
+                                                class="fas fa-camera mr-1"></i> Bukti Penerimaan Cabang</div>
+                                        <div class="d-flex flex-wrap" style="gap:12px;">
+                                            <% for (var b=0; b < s.bukti_penerimaan_urls.length; b++) { %>
+                                                <a href="<%= s.bukti_penerimaan_urls[b] %>" target="_blank">
+                                                    <img src="<%= s.bukti_penerimaan_urls[b] %>" class="bukti-img"
+                                                        style="width:85px;height:85px;object-fit:cover;">
+                                                </a>
+                                                <% } %>
+                                        </div>
+                                    </div>
+                                    <% } %>
+
+                                        <div class="mt-3">
+                                            <form method="POST" action="/admin/shipments/<%= s.id %>"
+                                                class="form-inline" data-confirm-status>
+                                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+                                                <div class="form-group mb-2 mr-2">
+                                                    <label class="mr-2">Status</label>
+                                                    <select name="status" class="form-control form-control-sm">
+                                                        <option value="draft" <%=st==='draft' ? 'selected' : '' %>>draft
+                                                        </option>
+                                                        <option value="terkirim" <%=(st==='terkirim' || st==='dikirim' )
+                                                            ? 'selected' : '' %>>terkirim</option>
+                                                        <option value="diterima" <%=st==='diterima' ? 'selected' : '' %>
+                                                            >diterima</option>
+                                                        <option value="ditolak" <%=st==='ditolak' ? 'selected' : '' %>
+                                                            >ditolak</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="form-group mb-2 mr-2">
+                                                    <input type="text" name="keterangan"
+                                                        class="form-control form-control-sm" placeholder="Keterangan"
+                                                        value="<%= s.keterangan || '' %>">
+                                                </div>
+
+                                                <button type="submit" class="btn btn-sm btn-primary mb-2">
+                                                    <i class="fas fa-save"></i> Simpan
+                                                </button>
+                                            </form>
+                                        </div>
+                            </div>
+                        </div>
+                        <% } %>
+</div>
+
+<!-- Modal: Tambah Pengiriman -->
+<div class="modal fade" id="modalTambahPengiriman" tabindex="-1" role="dialog"
+    aria-labelledby="modalTambahPengirimanLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <form method="POST" action="/admin/shipments" id="formTambahPengiriman">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="data_barang_json" id="data_barang_json">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTambahPengirimanLabel">Tambah Pengiriman</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+
+                    <!-- Referensi PO & SO -->
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>PO Number</label>
+                            <input type="text" name="po_number" class="form-control form-control-sm"
+                                placeholder="Misal: PO-2025-001">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>SO Number</label>
+                            <input type="text" name="so_number" class="form-control form-control-sm"
+                                placeholder="Misal: SO-2025-001">
+                        </div>
+                    </div>
+
+                    <!-- Penerima (cabang) & status -->
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Penerima (Cabang)</label>
+                            <select name="penerima" id="fieldPenerima" class="form-control form-control-sm" required>
+                                <option value="">— pilih cabang —</option>
+                                <% var _c=Array.isArray(cabangs) ? cabangs : []; for (var i=0;i<_c.length;i++){ var
+                                    c=_c[i]; %>
+                                    <option value="<%= c.id %>">
+                                        <%= c.username %>
+                                    </option>
+                                    <% } %>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Status Awal</label>
+                            <select name="status" class="form-control form-control-sm">
+                                <option value="terkirim" selected>terkirim</option>
+                                <option value="draft">draft</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Keterangan (opsional)</label>
+                        <input type="text" name="keterangan" class="form-control form-control-sm"
+                            placeholder="Catatan untuk pengiriman ini">
+                    </div>
+
+                    <!-- Tabel Item -->
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">Item Barang</h6>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddItem">
+                            <i class="fas fa-plus"></i> Tambah Item
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm" id="tblItems">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th style="width:56px;">#</th>
+                                    <th>Produk</th>
+                                    <th style="width:120px;" class="text-right">Qty</th>
+                                    <th style="width:80px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsBody">
+                                <!-- baris item akan ditambahkan via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Template baris item -->
+                    <template id="tplRow">
+                        <tr>
+                            <td class="row-index text-center"></td>
+                            <td>
+                                <select class="form-control form-control-sm product-select" required>
+                                    <option value="">— pilih produk —</option>
+                                    <% var _p=Array.isArray(products) ? products : []; for (var j=0;j<_p.length;j++){
+                                        var p=_p[j]; %>
+                                        <option value="<%= p.id %>" data-sku="<%= p.sku || '' %>"
+                                            data-nama="<%= p.nama_produk || '' %>" data-satuan="<%= p.satuan || '' %>"
+                                            data-barcode="<%= p.barcode || '' %>">
+                                            <%= (p.sku||'') %> — <%= (p.nama_produk||'') %>
+                                        </option>
+                                        <% } %>
+                                </select>
+                                <div class="small text-muted mt-1 detail-produk"></div>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm qty-input text-right" min="1"
+                                    step="1" value="1" required>
+                            </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-danger btnRemoveRow">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan Pengiriman</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var body = document.getElementById('itemsBody');
+        var tpl = document.getElementById('tplRow');
+        var btnAdd = document.getElementById('btnAddItem');
+        var form = document.getElementById('formTambahPengiriman');
+        var fieldJSON = document.getElementById('data_barang_json');
+
+        function renumber() {
+            var rows = body.querySelectorAll('tr');
+            rows.forEach(function (tr, idx) {
+                var idxCell = tr.querySelector('.row-index');
+                if (idxCell) idxCell.textContent = (idx + 1);
+            });
+        }
+
+        function updateDetail(selectEl) {
+            var opt = selectEl.options[selectEl.selectedIndex];
+            var info = '';
+            if (opt && opt.value) {
+                var sku = opt.getAttribute('data-sku') || '';
+                var nama = opt.getAttribute('data-nama') || '';
+                var satuan = opt.getAttribute('data-satuan') || '';
+                var barcode = opt.getAttribute('data-barcode') || '';
+                info = (sku ? ('SKU: ' + sku + ' · ') : '') +
+                    (satuan ? ('Satuan: ' + satuan + ' · ') : '') +
+                    (barcode ? ('Barcode: ' + barcode) : '');
+                if (info.endsWith(' · ')) info = info.slice(0, -3);
+            }
+            var detailDiv = selectEl.closest('td').querySelector('.detail-produk');
+            if (detailDiv) detailDiv.textContent = info;
+        }
+
+        function addRow() {
+            var clone = document.importNode(tpl.content, true);
+            var tr = clone.querySelector('tr');
+
+            var sel = tr.querySelector('.product-select');
+            sel.addEventListener('change', function () { updateDetail(sel); });
+
+            var btnDel = tr.querySelector('.btnRemoveRow');
+            btnDel.addEventListener('click', function () {
+                tr.parentNode.removeChild(tr);
+                renumber();
+            });
+
+            body.appendChild(tr);
+            renumber();
+        }
+
+        if (btnAdd) btnAdd.addEventListener('click', addRow);
+
+        // Tambahkan satu baris default saat modal dibuka
+        $('#modalTambahPengiriman').on('shown.bs.modal', function () {
+            if (!body.querySelector('tr')) addRow();
+        }).on('hidden.bs.modal', function () {
+            // bersihkan form setelah ditutup
+            body.innerHTML = '';
+            form.reset();
+            if (fieldJSON) fieldJSON.value = '';
+        });
+
+        // Build data_barang_json saat submit
+        if (form) form.addEventListener('submit', function (ev) {
+            try {
+                var penerima = document.getElementById('fieldPenerima');
+                if (!penerima || !penerima.value) {
+                    ev.preventDefault();
+                    alert('Penerima (Cabang) wajib dipilih.');
+                    return false;
+                }
+
+                var rows = body.querySelectorAll('tr');
+                if (!rows.length) {
+                    ev.preventDefault();
+                    alert('Minimal 1 item.');
+                    return false;
+                }
+
+                var items = [];
+                rows.forEach(function (tr) {
+                    var sel = tr.querySelector('.product-select');
+                    var qtyEl = tr.querySelector('.qty-input');
+                    var pid = sel ? sel.value : '';
+                    var qty = qtyEl ? Number(qtyEl.value) : 0;
+
+                    if (pid && Number.isFinite(qty) && qty > 0) {
+                        // kirim minimal product_id + qty
+                        items.push({ product_id: pid, qty: qty });
+                    }
+                });
+
+                if (!items.length) {
+                    ev.preventDefault();
+                    alert('Semua item tidak valid. Pastikan pilih produk dan qty > 0.');
+                    return false;
+                }
+
+                fieldJSON.value = JSON.stringify(items);
+                // submit lanjut
+            } catch (e) {
+                ev.preventDefault();
+                alert('Gagal menyiapkan data barang.');
+                return false;
+            }
+        });
+
+        // Notifikasi via Swal
+        var params = new URLSearchParams(window.location.search);
+        var ok = params.get('ok');
+        var err = params.get('err');
+
+        function hasSwal() { return typeof Swal !== 'undefined' && Swal && Swal.fire; }
+
+        if (ok && hasSwal()) {
+            var title = ok;
+            if (ok === 'created') title = 'Pengiriman dibuat';
+            if (ok === 'updated') title = 'Perubahan disimpan';
+            if (ok === 'deleted') title = 'Pengiriman dihapus';
+            if (ok === 'confirmed') title = 'Konfirmasi tersimpan';
+
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: title, showConfirmButton: false, timer: 2200, timerProgressBar: true });
+            params.delete('ok');
+            var url = location.pathname + (params.toString() ? '?' + params.toString() : '');
+            window.history.replaceState({}, '', url);
+        }
+
+        if (err && hasSwal()) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: err });
+            params.delete('err');
+            var url2 = location.pathname + (params.toString() ? '?' + params.toString() : '');
+            window.history.replaceState({}, '', url2);
+        }
+
+        // === KONFIRMASI HAPUS (delegation)
+        document.addEventListener('submit', function (ev) {
+            var form = ev.target;
+            if (!form || !form.matches('form[data-confirm]')) return;
+
+            // cegah double-hook
+            if (form.dataset.confirmHandled === '1') return;
+
+            ev.preventDefault();
+            var msg = form.getAttribute('data-confirm') || 'Yakin hapus item ini?';
+            if (hasSwal()) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Konfirmasi',
+                    text: msg,
+                    showCancelButton: true,
+                    confirmButtonText: 'Hapus',
+                    cancelButtonText: 'Batal'
+                }).then(function (r) {
+                    if (r.isConfirmed) {
+                        form.dataset.confirmHandled = '1';
+                        form.submit();
+                    }
+                });
+            } else {
+                if (confirm(msg)) {
+                    form.dataset.confirmHandled = '1';
+                    form.submit();
+                }
+            }
+        }, true);
+
+        // === KONFIRMASI UBAH STATUS (delegation)
+        document.addEventListener('submit', function (ev) {
+            var form = ev.target;
+            if (!form || !form.matches('form[data-confirm-status]')) return;
+
+            if (form.dataset.confirmHandled === '1') return;
+
+            ev.preventDefault();
+            var sel = form.querySelector('select[name="status"]');
+            var status = sel ? sel.value : '';
+
+            var msg = status ? ('Status akan diubah menjadi "' + status + '".') : 'Simpan perubahan status?';
+
+            if (hasSwal()) {
+                Swal.fire({
+                    icon: 'question',
+                    title: 'Ubah status?',
+                    text: msg,
+                    showCancelButton: true,
+                    confirmButtonText: 'Simpan',
+                    cancelButtonText: 'Batal'
+                }).then(function (r) {
+                    if (r.isConfirmed) {
+                        form.dataset.confirmHandled = '1';
+                        form.submit();
+                    }
+                });
+            } else {
+                if (confirm(msg)) {
+                    form.dataset.confirmHandled = '1';
+                    form.submit();
+                }
+            }
+        }, true);
+    })();
+</script>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>
+        <%= title %>
+    </title>
+    <style>
+        @page {
+            margin: 8mm;
+        }
+
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            font-size: 12px;
+        }
+
+        .resi {
+            width: 80mm;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #000;
+            padding: 4px;
+        }
+    </style>
+</head>
+
+<body onload="window.print()">
+    <div class="resi">
+        <h3>Resi Pengiriman</h3>
+
+        <p>Kode: <strong>
+                <%= shipment.kode_pengiriman %>
+            </strong></p>
+        <p>Pengirim:
+            <%= (pengirim && (pengirim.username || pengirim.nama)) || '-' %>
+        </p>
+        <p>Penerima:
+            <%= (penerima && (penerima.nama_cabang || penerima.username || penerima.nama)) || '-' %>
+        </p>
+
+        <p>
+            Alamat Penerima:<br>
+            <% if (penerima) { %>
+                <%= penerima.jalan || '' %><br>
+                    <%= penerima.kota || '' %>
+                        <% if (penerima.provinsi) { %>, <%= penerima.provinsi %>
+                                <% } %>
+                                    <% } else { %>
+                                        -
+                                        <% } %>
+        </p>
+
+        <!-- Barcode dari kode_pengiriman -->
+        <svg id="barcode"></svg>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Nama Barang</th>
+                    <th>Barcode</th>
+                    <th>Qty</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% (items || []).forEach(function(it, i) { %>
+                    <tr>
+                        <td>
+                            <%= i + 1 %>
+                        </td>
+                        <td>
+                            <%= it._nama_produk %>
+                        </td>
+                        <td>
+                            <%= it._barcode %>
+                        </td>
+                        <td>
+                            <%= it._qty %>
+                        </td>
+                    </tr>
+                    <% }) %>
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <script>
+        JsBarcode("#barcode", "<%= shipment.kode_pengiriman %>", {
+            format: "CODE128",
+            displayValue: true
+        });
+    </script>
+</body>
+
+</html>

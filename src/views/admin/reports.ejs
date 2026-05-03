@@ -1,0 +1,94 @@
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Laporan Penjualan</h1>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Rekap Transaksi</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive" style="overflow-x:auto;">
+            <table class="table table-bordered table-sm table-hover" id="reportsTable" width="100%" cellspacing="0">
+                <thead class="thead-light">
+                    <tr>
+                        <th class="text-nowrap">Invoice No.</th>
+                        <th class="text-nowrap">Invoice Date</th>
+                        <th class="text-nowrap">Delivery Note</th>
+                        <th class="text-nowrap">Customer code</th>
+                        <th class="text-nowrap">Customer name</th>
+                        <th class="text-nowrap">PO number</th>
+                        <th class="text-nowrap">PO Date</th>
+                        <th class="text-nowrap">Material No.</th>
+                        <th class="text-nowrap">Material description</th>
+                        <th class="text-nowrap">Material Division</th>
+                        <th class="text-nowrap text-right">Billed quantity</th>
+                        <th class="text-nowrap text-right">Item Net value</th>
+                        <th class="text-nowrap text-right">Item cost</th>
+                        <th class="text-nowrap text-right">Item tax</th>
+                        <th class="text-nowrap">SO number</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% function fDate(d) {
+                           if (!d) return '-';
+                           const dt = new Date(d);
+                           const dd = String(dt.getDate()).padStart(2, '0');
+                           const mm = String(dt.getMonth() + 1).padStart(2, '0');
+                           return dd + '/' + mm + '/' + dt.getFullYear();
+                       }
+                       reportRows.forEach(r => { %>
+                        <tr>
+                            <td class="text-nowrap"><%= r.invoice_no %></td>
+                            <td class="text-nowrap"><%= fDate(r.invoice_date) %></td>
+                            <td class="text-nowrap"><%= r.delivery_note %></td>
+                            <td class="text-nowrap"><%= r.customer_code %></td>
+                            <td class="text-nowrap"><%= r.customer_name %></td>
+                            <td class="text-nowrap"><%= r.po_number || '-' %></td>
+                            <td class="text-nowrap"><%= fDate(r.po_date) %></td>
+                            <td class="text-nowrap"><%= r.material_no %></td>
+                            <td class="text-nowrap"><%= r.material_desc %></td>
+                            <td class="text-nowrap"><%= r.material_div || '-' %></td>
+                            <td class="text-right text-nowrap"><%= r.billed_qty %></td>
+                            <td class="text-right text-nowrap"><%= r.item_net_value %></td>
+                            <td class="text-right text-nowrap"><%= r.item_cost %></td>
+                            <td class="text-right text-nowrap"><%= r.item_tax %></td>
+                            <td class="text-nowrap"><%= r.so_number || '-' %></td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- DataTables -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs4/1.13.6/dataTables.bootstrap4.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap4.min.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net/1.13.6/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs4/1.13.6/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        $('#reportsTable').DataTable({
+            pageLength: 50,
+            lengthMenu: [10, 25, 50, 100, 500],
+            order: [[1, 'desc']], // sort by invoice date descending initially
+            dom: "<'row'<'col-sm-12 col-md-4'l><'col-sm-12 col-md-4 text-center'B><'col-sm-12 col-md-4'f>>" +
+                 "<'row'<'col-sm-12'tr>>" +
+                 "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+            buttons: [
+                {
+                    extend: 'excelHtml5',
+                    text: '<i class="fas fa-file-excel"></i> Download Excel',
+                    className: 'btn btn-success btn-sm',
+                    title: 'Laporan_Penjualan_AquaStock'
+                }
+            ]
+        });
+    });
+</script>
