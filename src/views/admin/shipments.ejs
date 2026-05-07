@@ -133,10 +133,6 @@
     </style>
     <div class="d-sm-flex align-items-center justify-content-between mb-4 mt-2">
         <h1 class="h3 mb-0 page-title">Manajemen Pengiriman</h1>
-        <button type="button" class="btn btn-sm btn-modern btn-modern-primary px-4 py-2" data-toggle="modal"
-            data-target="#modalTambahPengiriman">
-            <i class="fas fa-plus mr-1"></i> Buat Pengiriman Baru
-        </button>
     </div>
 
     <% var list=Array.isArray(shipments) ? shipments : []; %>
@@ -237,12 +233,9 @@
                                                     satuan=it.satuan; } var barcode='-' ; if (p && p.barcode) {
                                                     barcode=p.barcode; } else if (it && it.barcode) {
                                                     barcode=it.barcode; } var img='' ; if (p && p.gambar_url) {
-                                                    img=p.gambar_url; } 
-                                                    var netVal=Number(it.item_net_value || it.harga) || 0; 
-                                                    var tax=Number(it.item_tax) || 0; 
-                                                    var unitPrice = netVal + tax;
-                                                    var subtotal = qtyKirim * unitPrice;
-                                                    grandTotal += subtotal; %>
+                                                    img=p.gambar_url; } var netVal=Number(it.item_net_value || it.harga)
+                                                    || 0; var tax=Number(it.item_tax) || 0; var unitPrice=netVal + tax;
+                                                    var subtotal=qtyKirim * unitPrice; grandTotal +=subtotal; %>
                                                     <tr>
                                                         <td>
                                                             <%= i + 1 %>
@@ -322,6 +315,15 @@
                                     <% } %>
 
                                         <div class="mt-3">
+                                            <% if (st === 'diterima') { %>
+                                                <div class="alert alert-success mb-0 d-flex align-items-center" style="border-radius: 10px;">
+                                                    <i class="fas fa-check-circle fa-lg mr-3"></i>
+                                                    <div>
+                                                        <strong>Pengiriman Sudah Diterima</strong><br>
+                                                        <small class="text-muted">Pengiriman ini telah dikonfirmasi diterima oleh cabang dan tidak dapat diubah lagi.</small>
+                                                    </div>
+                                                </div>
+                                            <% } else { %>
                                             <form method="POST" action="/admin/shipments/<%= s.id %>"
                                                 class="form-inline" data-confirm-status>
                                                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -350,245 +352,16 @@
                                                     <i class="fas fa-save"></i> Simpan
                                                 </button>
                                             </form>
+                                            <% } %>
                                         </div>
                             </div>
                         </div>
                         <% } %>
 </div>
 
-<!-- Modal: Tambah Pengiriman -->
-<div class="modal fade" id="modalTambahPengiriman" tabindex="-1" role="dialog"
-    aria-labelledby="modalTambahPengirimanLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <form method="POST" action="/admin/shipments" id="formTambahPengiriman">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <input type="hidden" name="data_barang_json" id="data_barang_json">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTambahPengirimanLabel">Tambah Pengiriman</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-
-                <div class="modal-body">
-
-                    <!-- Referensi PO & SO -->
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label>PO Number</label>
-                            <input type="text" name="po_number" class="form-control form-control-sm"
-                                placeholder="Misal: PO-2025-001">
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label>SO Number</label>
-                            <input type="text" name="so_number" class="form-control form-control-sm"
-                                placeholder="Misal: SO-2025-001">
-                        </div>
-                    </div>
-
-                    <!-- Penerima (cabang) & status -->
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label>Penerima (Cabang)</label>
-                            <select name="penerima" id="fieldPenerima" class="form-control form-control-sm" required>
-                                <option value="">— pilih cabang —</option>
-                                <% var _c=Array.isArray(cabangs) ? cabangs : []; for (var i=0;i<_c.length;i++){ var
-                                    c=_c[i]; %>
-                                    <option value="<%= c.id %>">
-                                        <%= c.username %>
-                                    </option>
-                                    <% } %>
-                            </select>
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label>Status Awal</label>
-                            <select name="status" class="form-control form-control-sm">
-                                <option value="terkirim" selected>terkirim</option>
-                                <option value="draft">draft</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Keterangan (opsional)</label>
-                        <input type="text" name="keterangan" class="form-control form-control-sm"
-                            placeholder="Catatan untuk pengiriman ini">
-                    </div>
-
-                    <!-- Tabel Item -->
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="mb-0">Item Barang</h6>
-                        <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddItem">
-                            <i class="fas fa-plus"></i> Tambah Item
-                        </button>
-                    </div>
-
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-sm" id="tblItems">
-                            <thead class="thead-light">
-                                <tr>
-                                    <th style="width:56px;">#</th>
-                                    <th>Produk</th>
-                                    <th style="width:120px;" class="text-right">Qty</th>
-                                    <th style="width:80px;"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="itemsBody">
-                                <!-- baris item akan ditambahkan via JS -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Template baris item -->
-                    <template id="tplRow">
-                        <tr>
-                            <td class="row-index text-center"></td>
-                            <td>
-                                <select class="form-control form-control-sm product-select" required>
-                                    <option value="">— pilih produk —</option>
-                                    <% var _p=Array.isArray(products) ? products : []; for (var j=0;j<_p.length;j++){
-                                        var p=_p[j]; %>
-                                        <option value="<%= p.id %>" data-sku="<%= p.sku || '' %>"
-                                            data-nama="<%= p.nama_produk || '' %>" data-satuan="<%= p.satuan || '' %>"
-                                            data-barcode="<%= p.barcode || '' %>">
-                                            <%= (p.sku||'') %> — <%= (p.nama_produk||'') %>
-                                        </option>
-                                        <% } %>
-                                </select>
-                                <div class="small text-muted mt-1 detail-produk"></div>
-                            </td>
-                            <td>
-                                <input type="number" class="form-control form-control-sm qty-input text-right" min="1"
-                                    step="1" value="1" required>
-                            </td>
-                            <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-outline-danger btnRemoveRow">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    </template>
-
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan Pengiriman</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
 
 <script>
     (function () {
-        var body = document.getElementById('itemsBody');
-        var tpl = document.getElementById('tplRow');
-        var btnAdd = document.getElementById('btnAddItem');
-        var form = document.getElementById('formTambahPengiriman');
-        var fieldJSON = document.getElementById('data_barang_json');
-
-        function renumber() {
-            var rows = body.querySelectorAll('tr');
-            rows.forEach(function (tr, idx) {
-                var idxCell = tr.querySelector('.row-index');
-                if (idxCell) idxCell.textContent = (idx + 1);
-            });
-        }
-
-        function updateDetail(selectEl) {
-            var opt = selectEl.options[selectEl.selectedIndex];
-            var info = '';
-            if (opt && opt.value) {
-                var sku = opt.getAttribute('data-sku') || '';
-                var nama = opt.getAttribute('data-nama') || '';
-                var satuan = opt.getAttribute('data-satuan') || '';
-                var barcode = opt.getAttribute('data-barcode') || '';
-                info = (sku ? ('SKU: ' + sku + ' · ') : '') +
-                    (satuan ? ('Satuan: ' + satuan + ' · ') : '') +
-                    (barcode ? ('Barcode: ' + barcode) : '');
-                if (info.endsWith(' · ')) info = info.slice(0, -3);
-            }
-            var detailDiv = selectEl.closest('td').querySelector('.detail-produk');
-            if (detailDiv) detailDiv.textContent = info;
-        }
-
-        function addRow() {
-            var clone = document.importNode(tpl.content, true);
-            var tr = clone.querySelector('tr');
-
-            var sel = tr.querySelector('.product-select');
-            sel.addEventListener('change', function () { updateDetail(sel); });
-
-            var btnDel = tr.querySelector('.btnRemoveRow');
-            btnDel.addEventListener('click', function () {
-                tr.parentNode.removeChild(tr);
-                renumber();
-            });
-
-            body.appendChild(tr);
-            renumber();
-        }
-
-        if (btnAdd) btnAdd.addEventListener('click', addRow);
-
-        // Tambahkan satu baris default saat modal dibuka
-        $('#modalTambahPengiriman').on('shown.bs.modal', function () {
-            if (!body.querySelector('tr')) addRow();
-        }).on('hidden.bs.modal', function () {
-            // bersihkan form setelah ditutup
-            body.innerHTML = '';
-            form.reset();
-            if (fieldJSON) fieldJSON.value = '';
-        });
-
-        // Build data_barang_json saat submit
-        if (form) form.addEventListener('submit', function (ev) {
-            try {
-                var penerima = document.getElementById('fieldPenerima');
-                if (!penerima || !penerima.value) {
-                    ev.preventDefault();
-                    alert('Penerima (Cabang) wajib dipilih.');
-                    return false;
-                }
-
-                var rows = body.querySelectorAll('tr');
-                if (!rows.length) {
-                    ev.preventDefault();
-                    alert('Minimal 1 item.');
-                    return false;
-                }
-
-                var items = [];
-                rows.forEach(function (tr) {
-                    var sel = tr.querySelector('.product-select');
-                    var qtyEl = tr.querySelector('.qty-input');
-                    var pid = sel ? sel.value : '';
-                    var qty = qtyEl ? Number(qtyEl.value) : 0;
-
-                    if (pid && Number.isFinite(qty) && qty > 0) {
-                        // kirim minimal product_id + qty
-                        items.push({ product_id: pid, qty: qty });
-                    }
-                });
-
-                if (!items.length) {
-                    ev.preventDefault();
-                    alert('Semua item tidak valid. Pastikan pilih produk dan qty > 0.');
-                    return false;
-                }
-
-                fieldJSON.value = JSON.stringify(items);
-                // submit lanjut
-            } catch (e) {
-                ev.preventDefault();
-                alert('Gagal menyiapkan data barang.');
-                return false;
-            }
-        });
-
-        // Notifikasi via Swal
         var params = new URLSearchParams(window.location.search);
         var ok = params.get('ok');
         var err = params.get('err');

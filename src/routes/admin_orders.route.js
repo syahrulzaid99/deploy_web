@@ -120,6 +120,12 @@ router.post('/admin/orders/:id', requireAuth, requireRole(['admin']), csrfProtec
         if (!cur.exists) return res.redirect('/admin/orders?err=' + encodeURIComponent('Pesanan tidak ditemukan'));
 
         const currentData = cur.data();
+
+        // Jika sudah selesai, tidak boleh diubah lagi
+        if ((currentData.status || '').toLowerCase() === 'selesai') {
+            return res.redirect('/admin/orders?err=' + encodeURIComponent('Pesanan sudah selesai dan tidak dapat diubah'));
+        }
+
         const newStatus = status ? status.trim() : currentData.status;
 
         // Jika status diubah jadi 'dikirim' dan sebelumnya belum 'dikirim'

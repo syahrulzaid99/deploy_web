@@ -182,6 +182,11 @@ router.post('/admin/shipments/:id', requireAuth, requireRole(['admin']), csrfPro
         const cur = await ref.get();
         if (!cur.exists) return res.redirect('/admin/shipments?err=' + encodeURIComponent('Pengiriman tidak ditemukan'));
 
+        // Jika sudah diterima, tidak boleh diubah lagi
+        if ((cur.data().status || '').toLowerCase() === 'diterima') {
+            return res.redirect('/admin/shipments?err=' + encodeURIComponent('Pengiriman sudah diterima dan tidak dapat diubah'));
+        }
+
         await ref.update({
             status: status ? status.trim() : cur.data().status,
             keterangan: typeof keterangan === 'string' ? keterangan.trim() : (cur.data().keterangan || ''),
@@ -790,6 +795,18 @@ router.post(
                 };
             });
 
+            // Stock validation check
+            for (const it of enrichedItems) {
+                const p = productsById[it.product_id] || {};
+                const currentStock = p.stok || 0;
+                if (currentStock < it.qty) {
+                    return res.status(400).json({
+                        error: 'insufficient_stock',
+                        message: `Stok produk "${it.nama_produk}" tidak mencukupi (Tersisa: ${currentStock})`
+                    });
+                }
+            }
+
             // generate order code sequentially
             const kode_order = await generateSequentialCode('orders', 'PO', 'kode_order');
 
@@ -808,6 +825,20 @@ router.post(
             };
 
             await db.collection('orders').doc(id).set(doc);
+
+            // Deduct inventory stock
+            const batch = db.batch();
+            let hasOp = false;
+            for (const item of enrichedItems) {
+                if (item.product_id && item.qty > 0) {
+                    batch.update(db.collection('products').doc(item.product_id), {
+                        stok: admin.firestore.FieldValue.increment(-item.qty),
+                        updatedAt: new Date()
+                    });
+                    hasOp = true;
+                }
+            }
+            if (hasOp) await batch.commit().catch(e => console.error('Failed to deduct stock for order:', e));
 
             return res.json({ ok: true, kode_order, id });
         } catch (e) {

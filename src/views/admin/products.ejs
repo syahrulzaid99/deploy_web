@@ -53,7 +53,7 @@
                             <td><%= p.nama_produk %></td>
                             <td><%= p.satuan %></td>
                             <td><%= p.divisi || '-' %></td>
-                            <td class="text-right font-weight-bold"><%= p.stok || 0 %></td>
+                            <td class="text-right font-weight-bold <%= (p.stok || 0) <= 0 ? 'text-danger' : '' %>"><%= p.stok || 0 %></td>
                             <td class="text-right"><%= p.harga_modal || 0 %></td>
                             <td class="text-right"><%= p.harga_jual || 0 %></td>
                             <td class="text-right"><%= p.pajak || 0 %></td>
