@@ -3,16 +3,16 @@ const router = express.Router();
 const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const csrf = require('csurf');
+const { csrfProtection } = require('../middleware/csrf');
 const { db } = require('../firebaseAdmin');
+const { requireAuthApi } = require('../middleware/auth');
+
 
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || '__session';
 const EXPIRES_DAYS = parseInt(process.env.SESSION_COOKIE_EXPIRES_DAYS || '5', 10);
 const JWT_SECRET = process.env.JWT_SECRET;
 
 router.use(cookieParser());
-const csrfProtection = csrf({ cookie: true });
-
 router.get('/login', csrfProtection, (req, res) => {
     res.render('login', { 
         layout: false, 
@@ -73,8 +73,7 @@ router.post('/api/v1/auth/login', express.json(), async (req, res) => {
         const ok = await bcrypt.compare(password, user.password_hash || '');
         if (!ok) return res.status(401).json({ error: 'invalid_credentials' });
 
-        // khusus Android: wajib cabang
-        if (user.role !== 'cabang') return res.status(403).json({ error: 'role_not_allowed' });
+        // Semua role bisa login via API (Flutter akan routing menu sesuai role)
 
         const expiresInSec = EXPIRES_DAYS * 24 * 60 * 60;
         const token = jwt.sign(
@@ -92,6 +91,38 @@ router.post('/api/v1/auth/login', express.json(), async (req, res) => {
                 nama_cabang: user.nama_cabang || '',
             }
         });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({ error: 'server_error' });
+    }
+});
+
+router.get('/api/v1/auth/me', requireAuthApi, (req, res) => {
+    return res.json({
+        user: req.profile || {}
+    });
+});
+
+router.put('/api/v1/auth/profile', express.json(), requireAuthApi, async (req, res) => {
+    try {
+        const { nama_cabang, provinsi, kota, jalan, password } = req.body;
+        const uid = req.user.uid;
+
+        const updateData = {
+            nama_cabang: nama_cabang ?? '',
+            provinsi: provinsi ?? '',
+            kota: kota ?? '',
+            jalan: jalan ?? '',
+            updatedAt: new Date()
+        };
+
+        if (password && password.trim().length >= 6) {
+            updateData.password_hash = await bcrypt.hash(password.trim(), 12);
+        }
+
+        await db.collection('users').doc(uid).update(updateData);
+        
+        return res.json({ success: true, message: 'Profil berhasil diperbarui' });
     } catch (e) {
         console.error(e);
         return res.status(500).json({ error: 'server_error' });

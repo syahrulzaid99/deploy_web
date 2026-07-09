@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const csrf = require('csurf');
+const { csrfProtection } = require('../middleware/csrf');
 const { randomUUID } = require('crypto');
 const admin = require('firebase-admin');
 const { generateSequentialCode, generateResiCode } = require('../utils/generateCode');
@@ -8,7 +8,6 @@ const { generateSequentialCode, generateResiCode } = require('../utils/generateC
 const { db } = require('../firebaseAdmin');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
-const csrfProtection = csrf({ cookie: true });
 router.use(express.urlencoded({ extended: false }));
 
 // Helper to get users
@@ -38,9 +37,11 @@ router.get('/admin/orders', requireAuth, requireRole(['admin']), csrfProtection,
         const snap = await db.collection('orders').orderBy('createdAt', 'desc').get();
         const orders = snap.docs.map(d => d.data());
 
-        // usersMap (untuk tampil username cabang)
         const cabangIds = [...new Set(orders.map(o => o.cabang_id).filter(Boolean))];
         const usersMap = await getUsersMapByIds(cabangIds);
+
+        const cabangUsers = await db.collection('users').where('role', '==', 'cabang').get();
+        const cabangList = cabangUsers.docs.map(d => ({ id: d.id, username: d.data().username || d.id }));
 
         res.render('admin/orders', {
             title: 'Pesanan Cabang',
@@ -49,11 +50,14 @@ router.get('/admin/orders', requireAuth, requireRole(['admin']), csrfProtection,
             profile: req.profile,
             orders,
             usersMap,
+            cabangList,
             ok: req.query.ok || null,
             err: req.query.err || null,
         });
     } catch (error) {
         console.error("Error loading orders:", error);
+        const cabangUsers = await db.collection('users').where('role', '==', 'cabang').get();
+        const cabangList = cabangUsers.docs.map(d => ({ id: d.id, username: d.data().username || d.id }));
         res.render('admin/orders', {
             title: 'Pesanan Cabang',
             csrfToken: req.csrfToken(),
@@ -61,6 +65,7 @@ router.get('/admin/orders', requireAuth, requireRole(['admin']), csrfProtection,
             profile: req.profile,
             orders: [],
             usersMap: {},
+            cabangList,
             ok: req.query.ok || null,
             err: "Gagal memuat daftar pesanan.",
         });
@@ -121,80 +126,47 @@ router.post('/admin/orders/:id', requireAuth, requireRole(['admin']), csrfProtec
 
         const currentData = cur.data();
 
-        // Jika sudah selesai, tidak boleh diubah lagi
-        if ((currentData.status || '').toLowerCase() === 'selesai') {
+        // Admin hanya bisa: pending+dibayar → approved_admin
+        const curStatus = (currentData.status || '').toLowerCase();
+        const paymentStatus = (currentData.payment_status || '').toLowerCase();
+
+        if (curStatus === 'selesai' || curStatus === 'diterima') {
             return res.redirect('/admin/orders?err=' + encodeURIComponent('Pesanan sudah selesai dan tidak dapat diubah'));
         }
-
-        const newStatus = status ? status.trim() : currentData.status;
-
-        // Jika status diubah jadi 'dikirim' dan sebelumnya belum 'dikirim'
-        if (newStatus === 'dikirim' && currentData.status !== 'dikirim') {
-            // 1. Generate Kode Pengiriman (Resi) dan SO Number
-            const kode_pengiriman = await generateResiCode();
-            const so_number = await generateSequentialCode('shipments', 'SO', 'so_number');
-
-            const shipmentId = randomUUID();
-            const items = (currentData.items || []).map(it => ({
-                ...it,
-                item_net_value: it.harga || 0, // Pastikan harga ikut terbawa
-                item_tax: it.pajak || 0
-            }));
-
-            // Format keterangan khusus
-            const orderKet = (keterangan && typeof keterangan === 'string') ? keterangan.trim() : (currentData.keterangan_admin || '');
-            const finalKet = (orderKet ? orderKet + ' | ' : '') + 'Dari Pesanan: ' + currentData.kode_order;
-
-            const shipmentDoc = {
-                id: shipmentId,
-                kode_pengiriman,
-                po_number: currentData.kode_order, // PO dari pesanan asal
-                so_number: so_number,              // SO Number sendiri (sequential)
-                pengirim: req.user.uid, // Admin yang sedang login
-                penerima: currentData.cabang_id,
-                keterangan: finalKet,
-                status: 'dikirim',
-                data_barang: items,
-                total_harga: currentData.total_harga || 0,
-                jumlah_item: items.length,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            };
-
-            await db.collection('shipments').doc(shipmentId).set(shipmentDoc);
-
-            // 3. Potong Stok Gudang Utama
-            const batch = db.batch();
-            let hasOp = false;
-            for (const item of items) {
-                const qty = Number(item.qty || item.jumlah || item._qty || 0);
-                const pid = item.product_id || item.produk_id || item.productId;
-                if (qty > 0 && pid) {
-                    batch.update(db.collection('products').doc(pid), {
-                        stok: admin.firestore.FieldValue.increment(-qty),
-                        updatedAt: new Date()
-                    });
-                    hasOp = true;
-                }
-            }
-            if (hasOp) await batch.commit().catch(e => console.error('Gagal potong stok:', e));
-
-            // 4. Update status order dengan ref shipment
-            await ref.update({
-                status: newStatus,
-                keterangan_admin: typeof keterangan === 'string' ? keterangan.trim() : (currentData.keterangan_admin || ''),
-                shipment_id: shipmentId,
-                kode_pengiriman: kode_pengiriman,
-                updatedAt: new Date()
-            });
-        } else {
-            // Update status biasa tanpa auto-create shipment
-            await ref.update({
-                status: newStatus,
-                keterangan_admin: typeof keterangan === 'string' ? keterangan.trim() : (currentData.keterangan_admin || ''),
-                updatedAt: new Date()
-            });
+        if (curStatus === 'dikirim') {
+            return res.redirect('/admin/orders?err=' + encodeURIComponent('Pesanan sedang dalam pengiriman dan tidak dapat diubah'));
         }
+        if (curStatus === 'dipaket') {
+            return res.redirect('/admin/orders?err=' + encodeURIComponent('Pesanan sedang dikemas gudang'));
+        }
+        if (curStatus !== 'pending') {
+            return res.redirect('/admin/orders?err=' + encodeURIComponent('Pesanan harus berstatus pending'));
+        }
+        // Wajib sudah dibayar
+        if (paymentStatus !== 'settlement') {
+            return res.redirect('/admin/orders?err=' + encodeURIComponent('Pesanan belum dibayar oleh cabang'));
+        }
+
+        const newStatus = 'approved_admin';
+
+        // Tambah history
+        const history = Array.isArray(currentData.history) ? currentData.history : [];
+        history.push({
+            status: 'approved_admin',
+            by: req.user.uid,
+            by_username: req.user.username,
+            at: new Date(),
+            note: typeof keterangan === 'string' ? keterangan.trim() : '',
+        });
+
+        await ref.update({
+            status: newStatus,
+            approved_admin_at: new Date(),
+            approved_admin_by: req.user.uid,
+            keterangan_admin: typeof keterangan === 'string' ? keterangan.trim() : (currentData.keterangan_admin || ''),
+            history,
+            updatedAt: new Date()
+        });
 
         return res.redirect('/admin/orders?ok=updated');
     } catch (e) {

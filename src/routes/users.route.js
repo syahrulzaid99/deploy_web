@@ -1,15 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const csrf = require('csurf');
+const { csrfProtection } = require('../middleware/csrf');
 const bcrypt = require('bcryptjs');
 
 const { db } = require('../firebaseAdmin');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
-const csrfProtection = csrf({ cookie: true });
 router.use(express.urlencoded({ extended: false }));
 
-// List Users (Admin only)
 router.get('/admin/users', requireAuth, requireRole(['admin']), csrfProtection, async (req, res) => {
     const snap = await db.collection('users').orderBy('username').get();
     const users = snap.docs.map(d => d.data());
@@ -28,7 +26,7 @@ router.post('/admin/users', requireAuth, requireRole(['admin']), csrfProtection,
         if (!username || !password || !role) {
             return res.redirect('/admin/users?err=' + encodeURIComponent('Field wajib belum lengkap'));
         }
-        if (!['admin', 'cabang'].includes(role)) {
+        if (!['admin', 'cabang', 'sales', 'gudang'].includes(role)) {
             return res.redirect('/admin/users?err=' + encodeURIComponent('Role tidak valid'));
         }
         const exist = await db.collection('users').where('username', '==', username).limit(1).get();

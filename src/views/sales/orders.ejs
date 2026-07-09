@@ -1,0 +1,240 @@
+<div class="container-fluid">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        .container-fluid { font-family: 'Inter', sans-serif; }
+        .aesthetic-card { border: none; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.04),0 1px 3px rgba(0,0,0,0.02) !important; background: #fff; overflow: hidden; }
+        .aesthetic-header { background: rgba(248,249,252,0.8) !important; backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.03) !important; padding: 1.5rem !important; }
+        .pill-badge { padding: 0.5em 1.2em !important; border-radius: 50rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.75em !important; color: white !important; }
+        .badge-pending { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); }
+        .badge-dikirim { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); }
+        .badge-diterima { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); }
+        .badge-rejected { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); }
+        .kode-highlight { color: #4e73df; background: #eaecfb; padding: 4px 10px; border-radius: 6px; font-weight: 800; }
+        .btn-create { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); color: #fff; box-shadow: 0 4px 12px rgba(28,200,138,0.3); }
+        .btn-create:hover { transform: translateY(-2px); color: #fff; }
+    </style>
+
+    <div class="d-sm-flex align-items-center justify-content-between mb-4 mt-2">
+        <h1 class="h3 mb-0 page-title">Buat Pesanan untuk Cabang</h1>
+        <button class="btn btn-create" data-toggle="modal" data-target="#modalCreate">
+            <i class="fas fa-plus"></i> Buat Pesanan
+        </button>
+    </div>
+
+    <% var list = Array.isArray(orders) ? orders : []; %>
+
+    <!-- Filter -->
+    <div class="card aesthetic-card mb-3">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-center flex-wrap" style="gap:12px;">
+                <label class="font-weight-bold text-gray-700 mb-0" style="font-size:0.9rem;">
+                    <i class="fas fa-filter mr-1"></i> Filter
+                </label>
+                <select id="filterCabang" class="form-control form-control-sm" style="max-width:200px;">
+                    <option value="">Semua Cabang</option>
+                    <% (cabangList || []).forEach(function(c) { %>
+                        <option value="<%= c.id %>"><%= c.username %></option>
+                    <% }); %>
+                </select>
+                <select id="filterStatus" class="form-control form-control-sm" style="max-width:180px;">
+                    <option value="">Semua Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved_admin">Diverifikasi</option>
+                    <option value="dipaket">Dikemas</option>
+                    <option value="dikirim">Dikirim</option>
+                    <option value="diterima">Diterima</option>
+                    <option value="rejected">Ditolak</option>
+                </select>
+                <button id="filterResetBtn" class="btn btn-sm btn-outline-secondary"><i class="fas fa-undo"></i> Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <% if (list.length === 0) { %>
+        <div class="card aesthetic-card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-shopping-cart fa-3x text-gray-300 mb-3"></i>
+                <p class="mb-0 text-muted">Belum ada pesanan.</p>
+            </div>
+        </div>
+    <% } %>
+
+    <% for (var si = 0; si < list.length; si++) { %>
+        <%
+            var o = list[si];
+            var st = (o.status || '').toLowerCase();
+            var cabang = (usersMap && usersMap[o.cabang_id]) ? usersMap[o.cabang_id] : null;
+
+            var badgeClass = 'pill-badge badge-pending';
+            if (st === 'dikirim' || st === 'dipaket') badgeClass = 'pill-badge badge-dikirim';
+            if (st === 'diterima' || st === 'selesai' || st === 'approved_admin') badgeClass = 'pill-badge badge-diterima';
+            if (st === 'rejected') badgeClass = 'pill-badge badge-rejected';
+        %>
+        <div class="card aesthetic-card mb-3" data-cabang-id="<%= o.cabang_id %>" data-status="<%= st %>">
+            <div class="card-header aesthetic-header d-flex justify-content-between">
+                <div>
+                    <span class="kode-highlight"><%= o.kode_order %></span>
+                    <small class="text-muted ml-2">
+                        <i class="fas fa-store mr-1"></i> <%= cabang ? cabang.username : o.cabang_id %>
+                    </small>
+                    <% if (o.created_by_role === 'sales') { %>
+                        <span class="badge badge-info ml-1">oleh sales</span>
+                    <% } %>
+                </div>
+                <span class="<%= badgeClass %>"><%= (o.status || 'pending').toUpperCase() %></span>
+            </div>
+            <div class="card-body px-4 py-3">
+                <div class="row">
+                    <div class="col-md-4"><small>Total: <strong>Rp <%= (o.total_harga || 0).toLocaleString('id-ID') %></strong></small></div>
+                    <div class="col-md-4"><small><%= (o.items || []).length %> item</small></div>
+                    <div class="col-md-4 text-right">
+                        <% if (o.payment_status === 'settlement') { %>
+                            <span class="badge badge-success">LUNAS</span>
+                        <% } else { %>
+                            <span class="badge badge-warning">BELUM BAYAR</span>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <% } %>
+</div>
+
+<!-- CREATE ORDER MODAL (sama seperti cabang) -->
+<div class="modal fade" id="modalCreate" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <form method="post" action="/sales/orders" class="modal-content">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="modal-header">
+                <h5 class="modal-title">Buat Pesanan untuk Cabang</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="font-weight-bold">Pilih Cabang Tujuan <span class="text-danger">*</span></label>
+                        <select name="cabang_id" class="form-control" required>
+                            <option value="">-- Pilih Cabang --</option>
+                            <% (cabangList || []).forEach(function(c) { %>
+                                <option value="<%= c.id %>"><%= c.username %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="font-weight-bold">Keterangan (opsional)</label>
+                        <input name="keterangan" class="form-control" placeholder="Catatan tambahan">
+                    </div>
+                </div>
+                <hr>
+                <h6 class="font-weight-bold mb-3">Pilih Produk</h6>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <input id="searchProduct" class="form-control" placeholder="Cari produk...">
+                    </div>
+                </div>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover" id="productsTable">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Produk</th>
+                                <th>SKU</th>
+                                <th>Satuan</th>
+                                <th class="text-right">Harga</th>
+                                <th class="text-right">Stok</th>
+                                <th class="text-center" style="width:120px;">Qty Pesan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% (products || []).forEach(function(p) { %>
+                            <tr class="product-row" data-search="<%= (p.nama_produk + ' ' + p.sku).toLowerCase() %>">
+                                <td><strong><%= p.nama_produk %></strong></td>
+                                <td><%= p.sku %></td>
+                                <td><%= p.satuan %></td>
+                                <td class="text-right">Rp <%= (p.harga_jual || 0).toLocaleString('id-ID') %></td>
+                                <td class="text-right"><%= p.stok || 0 %></td>
+                                <td class="text-center">
+                                    <input type="number" class="form-control form-control-sm qty-input"
+                                        name="qty_<%= p.id %>"
+                                        data-product-id="<%= p.id %>"
+                                        data-product-name="<%= p.nama_produk %>"
+                                        min="0" max="<%= p.stok || 0 %>" value="0"
+                                        style="width:70px; display:inline;">
+                                </td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Batal</button>
+                <button class="btn btn-success" type="submit" id="submitOrderBtn">
+                    <i class="fas fa-shopping-cart mr-1"></i> Buat Pesanan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function() {
+        var params = new URLSearchParams(window.location.search);
+        var ok = params.get('ok'), err = params.get('err');
+        if (ok && typeof Swal !== 'undefined') {
+            var title = ok === 'created' ? 'Pesanan berhasil dibuat!' : ok;
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title, showConfirmButton: false, timer: 3000, timerProgressBar: true });
+            params.delete('ok'); window.history.replaceState({}, '', location.pathname + (params.toString() ? '?' + params.toString() : ''));
+        }
+        if (err && typeof Swal !== 'undefined') {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: err });
+            params.delete('err'); window.history.replaceState({}, '', location.pathname + (params.toString() ? '?' + params.toString() : ''));
+        }
+
+        // Filter on sales page
+        var filterCabang = document.getElementById('filterCabang');
+        var filterStatus = document.getElementById('filterStatus');
+        var filterResetBtn = document.getElementById('filterResetBtn');
+        var cards = document.querySelectorAll('.card.aesthetic-card.mb-3[data-cabang-id]');
+
+        function applyFilter() {
+            var cv = filterCabang.value, sv = filterStatus.value;
+            cards.forEach(function(card) {
+                var match = (!cv || card.getAttribute('data-cabang-id') === cv) &&
+                            (!sv || card.getAttribute('data-status') === sv);
+                card.style.display = match ? '' : 'none';
+            });
+        }
+        filterCabang.addEventListener('change', applyFilter);
+        filterStatus.addEventListener('change', applyFilter);
+        filterResetBtn.addEventListener('click', function() { filterCabang.value = ''; filterStatus.value = ''; applyFilter(); });
+    })();
+
+    // Search products in modal
+    document.getElementById('searchProduct').addEventListener('keyup', function() {
+        var q = this.value.toLowerCase();
+        document.querySelectorAll('.product-row').forEach(function(row) {
+            row.style.display = q ? (row.getAttribute('data-search').indexOf(q) >= 0 ? '' : 'none') : '';
+        });
+    });
+
+    // Build JSON on submit
+    document.querySelector('#modalCreate form').addEventListener('submit', function(e) {
+        var items = [];
+        document.querySelectorAll('.qty-input').forEach(function(inp) {
+            var qty = parseInt(inp.value) || 0;
+            if (qty > 0) {
+                items.push({ product_id: inp.getAttribute('data-product-id'), qty: qty });
+            }
+        });
+        if (items.length === 0) {
+            e.preventDefault();
+            Swal.fire({ icon: 'warning', title: 'Pilih Produk', text: 'Minimal pilih 1 produk dengan qty > 0' });
+            return;
+        }
+        var hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'data_barang_json';
+        hidden.value = JSON.stringify(items);
+        this.appendChild(hidden);
+    });
+</script>

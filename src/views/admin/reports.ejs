@@ -2,6 +2,22 @@
     <h1 class="h3 mb-0 text-gray-800">Laporan Penjualan</h1>
 </div>
 
+<!-- Chart Row -->
+<div class="row mb-4">
+    <div class="col-xl-12 col-lg-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Grafik Pendapatan (Berdasarkan Bulan)</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-area" style="height: 300px;">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="card shadow mb-4">
     <div class="card-header py-3">
         <h6 class="m-0 font-weight-bold text-primary">Rekap Transaksi</h6>
@@ -90,5 +106,122 @@
                 }
             ]
         });
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse report data from server
+        const reportData = <%- JSON.stringify(reportRows) %>;
+        
+        // Group by Month-Year (e.g., '2023-01')
+        const groupedData = {};
+        
+        reportData.forEach(row => {
+            if (!row.invoice_date) return;
+            const dateObj = new Date(row.invoice_date);
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const year = dateObj.getFullYear();
+            const key = `${year}-${month}`; // YYYY-MM
+            
+            if (!groupedData[key]) {
+                groupedData[key] = 0;
+            }
+            groupedData[key] += Number(row.item_net_value || 0);
+        });
+        
+        // Sort keys ascending
+        const sortedKeys = Object.keys(groupedData).sort();
+        
+        const labels = sortedKeys.map(key => {
+            const [year, month] = key.split('-');
+            const date = new Date(year, month - 1);
+            return date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+        });
+        
+        const dataValues = sortedKeys.map(key => groupedData[key]);
+        
+        const ctx = document.getElementById('salesChart');
+        if (ctx && sortedKeys.length > 0) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Pendapatan (Rp)',
+                        data: dataValues,
+                        backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                        borderColor: 'rgba(78, 115, 223, 1)',
+                        pointRadius: 3,
+                        pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                        pointBorderColor: 'rgba(78, 115, 223, 1)',
+                        pointHoverRadius: 3,
+                        pointHoverBackgroundColor: 'rgba(78, 115, 223, 1)',
+                        pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+                        pointHitRadius: 10,
+                        pointBorderWidth: 2,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    if (value >= 1000000) {
+                                        return 'Rp ' + (value / 1000000).toLocaleString('id-ID') + 'M';
+                                    } else if (value >= 1000) {
+                                        return 'Rp ' + (value / 1000).toLocaleString('id-ID') + 'K';
+                                    }
+                                    return 'Rp ' + value.toLocaleString('id-ID');
+                                }
+                            },
+                            grid: {
+                                color: "rgb(234, 236, 244)",
+                                zeroLineColor: "rgb(234, 236, 244)",
+                                drawBorder: false,
+                                borderDash: [2],
+                                zeroLineBorderDash: [2]
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: "rgb(255,255,255)",
+                            bodyColor: "#858796",
+                            titleColor: '#6e707e',
+                            borderColor: '#dddfeb',
+                            borderWidth: 1,
+                            padding: 15,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += 'Rp ' + context.parsed.y.toLocaleString('id-ID');
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
     });
 </script>

@@ -2,7 +2,6 @@ require('dotenv').config();
 const path = require('path');
 const express = require('express');
 const expressLayouts = require('express-ejs-layouts');
-const fs = require('fs');
 const cookieParser = require('cookie-parser');
 
 const app = express();
@@ -14,7 +13,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// cookie parser (wajib kalau pakai csurf dengan cookie)
+// cookie parser (dipakai untuk CSRF cookie + session)
 app.use(cookieParser())
 
 app.set('view engine', 'ejs');
@@ -31,10 +30,7 @@ app.use((req, res, next) => {
 app.use(expressLayouts);
 app.set('layout', 'layouts/base'); // default layout = views/layouts/base.ejs
 
-// serve file gambar
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-
-// serve file statis
+// serve file statis (gambar via Cloudinary, bukan local uploads)
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // Routes
@@ -48,6 +44,10 @@ const cabangOrdersRoutes = require('./routes/cabang_orders.route');
 const reportsRoutes = require('./routes/reports.route');
 const divisiRoutes = require('./routes/divisi.route');
 const adminOrdersRoutes = require('./routes/admin_orders.route');
+const cabangStocksRoutes = require('./routes/cabang_stocks.route');
+const midtransWebhookRoutes = require('./routes/midtrans_webhook.route');
+const salesOrdersRoutes = require('./routes/sales_orders.route');
+const gudangOrdersRoutes = require('./routes/gudang_orders.route');
 
 app.use('/', authRoutes);
 app.use('/', dashRoutes);
@@ -59,17 +59,10 @@ app.use('/', cabangOrdersRoutes);
 app.use('/', reportsRoutes);
 app.use('/', divisiRoutes);
 app.use('/', adminOrdersRoutes);
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// siapkan folder uploads/products
-const uploadDir = path.join(__dirname, '..', 'uploads', 'products');
-try {
-    if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-    }
-} catch (e) {
-    console.warn('Gagal membuat folder uploads (biasanya karena filesystem read-only di Vercel):', e.message);
-}
+app.use('/', cabangStocksRoutes);
+app.use('/', midtransWebhookRoutes);
+app.use('/', salesOrdersRoutes);
+app.use('/', gudangOrdersRoutes);
 
 app.get('/', (req, res) => res.redirect('/dashboard'));
 

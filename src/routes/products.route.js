@@ -1,49 +1,24 @@
 const express = require('express');
 const router = express.Router();
-const csrf = require('csurf');
+const { csrfProtection } = require('../middleware/csrf');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 
 const { db } = require('../firebaseAdmin');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { uploadToStorage, deleteFromStorage } = require('../storageHelper');
 
-const csrfProtection = csrf({ cookie: true });
 router.use(express.urlencoded({ extended: false }));
 
-// ===== Multer setup =====
-const uploadRoot = path.join(__dirname, '..', '..', 'uploads', 'products');
-try {
-    if (!fs.existsSync(uploadRoot)) {
-        fs.mkdirSync(uploadRoot, { recursive: true });
-    }
-} catch (e) {
-    console.warn('Gagal membuat folder uploads products:', e.message);
-}
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadRoot),
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname || '').toLowerCase();
-        const name = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + ext;
-        cb(null, name);
-    }
+// ===== Multer memory storage (tanpa disk) =====
+const upload = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        const ok = /^image\/(png|jpe?g|gif|webp|svg\+xml)$/.test(file.mimetype);
+        cb(ok ? null : new Error('File harus gambar'), ok);
+    },
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
-function fileFilter(req, file, cb) {
-    const ok = /^image\/(png|jpe?g|gif|webp|svg\+xml)$/.test(file.mimetype);
-    cb(ok ? null : new Error('File harus gambar'), ok);
-}
-const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB
-
-// ===== Helpers =====
-function imageUrl(filename) {
-    return filename ? `/uploads/products/${filename}` : '';
-}
-function safeUnlink(filename) {
-    if (!filename) return;
-    const full = path.join(uploadRoot, filename);
-    fs.existsSync(full) && fs.unlink(full, () => { });
-}
 
 // ===== List =====
 router.get('/admin/products', requireAuth, requireRole(['admin']), csrfProtection, async (req, res) => {
@@ -68,27 +43,32 @@ router.post('/admin/products', requireAuth, requireRole(['admin']), upload.singl
     try {
         const { sku, barcode, nama_produk, satuan, divisi, harga_modal, harga_jual, pajak, stok } = req.body;
         if (!sku || !nama_produk || !satuan) {
-            // hapus upload yang sudah terlanjur naik
-            if (req.file?.filename) safeUnlink(req.file.filename);
             return res.redirect('/admin/products?err=' + encodeURIComponent('SKU, Nama Produk, dan Satuan wajib diisi'));
         }
 
         // Unique check (SKU wajib unik; barcode opsional kalau diisi)
         const skuExist = await db.collection('products').where('sku', '==', sku).limit(1).get();
         if (!skuExist.empty) {
-            if (req.file?.filename) safeUnlink(req.file.filename);
             return res.redirect('/admin/products?err=' + encodeURIComponent('SKU sudah digunakan'));
         }
         if (barcode) {
             const bcExist = await db.collection('products').where('barcode', '==', barcode).limit(1).get();
             if (!bcExist.empty) {
-                if (req.file?.filename) safeUnlink(req.file.filename);
                 return res.redirect('/admin/products?err=' + encodeURIComponent('Barcode sudah digunakan'));
             }
         }
 
+        // Upload gambar ke Cloudinary jika ada
+        let fileName = '';
+        let gambarUrl = '';
+        if (req.file) {
+            const ext = path.extname(req.file.originalname || '').toLowerCase();
+            fileName = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + ext;
+            const destPath = 'products/' + fileName;
+            gambarUrl = await uploadToStorage(req.file.buffer, destPath, req.file.mimetype);
+        }
+
         const id = require('crypto').randomUUID();
-        const fileName = req.file?.filename || '';
         const doc = {
             id,
             sku: sku.trim(),
@@ -101,7 +81,7 @@ router.post('/admin/products', requireAuth, requireRole(['admin']), upload.singl
             harga_jual: parseFloat(harga_jual) || 0,
             pajak: parseFloat(pajak) || 0,
             gambar_filename: fileName,
-            gambar_url: imageUrl(fileName),
+            gambar_url: gambarUrl,
             createdAt: new Date(),
             updatedAt: new Date()
         };
@@ -120,7 +100,6 @@ router.post('/admin/products/:id', requireAuth, requireRole(['admin']), upload.s
         const ref = db.collection('products').doc(id);
         const cur = await ref.get();
         if (!cur.exists) {
-            if (req.file?.filename) safeUnlink(req.file.filename);
             return res.redirect('/admin/products?err=' + encodeURIComponent('Produk tidak ditemukan'));
         }
         const { sku, barcode, nama_produk, satuan, divisi, harga_modal, harga_jual, pajak, stok } = req.body;
@@ -129,14 +108,12 @@ router.post('/admin/products/:id', requireAuth, requireRole(['admin']), upload.s
         if (sku && sku !== cur.data().sku) {
             const skuExist = await db.collection('products').where('sku', '==', sku).limit(1).get();
             if (!skuExist.empty) {
-                if (req.file?.filename) safeUnlink(req.file.filename);
                 return res.redirect('/admin/products?err=' + encodeURIComponent('SKU sudah digunakan'));
             }
         }
         if (barcode && barcode !== cur.data().barcode) {
             const bcExist = await db.collection('products').where('barcode', '==', barcode).limit(1).get();
             if (!bcExist.empty) {
-                if (req.file?.filename) safeUnlink(req.file.filename);
                 return res.redirect('/admin/products?err=' + encodeURIComponent('Barcode sudah digunakan'));
             }
         }
@@ -155,16 +132,21 @@ router.post('/admin/products/:id', requireAuth, requireRole(['admin']), upload.s
         };
 
         // gambar baru?
-        if (req.file?.filename) {
-            const oldFile = cur.data().gambar_filename;
-            patch.gambar_filename = req.file.filename;
-            patch.gambar_url = imageUrl(req.file.filename);
-            await ref.update(patch);
-            safeUnlink(oldFile); // hapus file lama
-        } else {
-            await ref.update(patch);
+        if (req.file) {
+            // Hapus gambar lama dari Cloudinary
+            const oldUrl = cur.data().gambar_url;
+            await deleteFromStorage(oldUrl);
+
+            const ext = path.extname(req.file.originalname || '').toLowerCase();
+            const fileName = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + ext;
+            const destPath = 'products/' + fileName;
+            const gambarUrl = await uploadToStorage(req.file.buffer, destPath, req.file.mimetype);
+
+            patch.gambar_filename = fileName;
+            patch.gambar_url = gambarUrl;
         }
 
+        await ref.update(patch);
         return res.redirect('/admin/products?ok=updated');
     } catch (e) {
         console.error(e);
@@ -179,9 +161,10 @@ router.post('/admin/products/:id/delete', requireAuth, requireRole(['admin']), c
         const ref = db.collection('products').doc(id);
         const cur = await ref.get();
         if (cur.exists) {
-            const oldFile = cur.data().gambar_filename;
+            // Hapus gambar dari Cloudinary
+            const oldUrl = cur.data().gambar_url;
+            await deleteFromStorage(oldUrl);
             await ref.delete();
-            safeUnlink(oldFile);
         }
         return res.redirect('/admin/products?ok=deleted');
     } catch (e) {

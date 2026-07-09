@@ -6,7 +6,7 @@
 </div>
 
 <div class="card shadow mb-4">
-    <div class="card-header py-3 d-flex align-items-center justify-content-between">
+    <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap" style="gap:8px;">
         <h6 class="m-0 font-weight-bold text-primary">Daftar Produk</h6>
         <div class="input-group" style="max-width: 250px;">
             <input id="tableSearch" class="form-control form-control-sm" placeholder="Cari ...">
@@ -16,6 +16,17 @@
         </div>
     </div>
     <div class="card-body">
+        <!-- Filter Divisi -->
+        <div class="mb-3 d-flex align-items-center flex-wrap" style="gap:6px;">
+            <span class="mr-2 text-gray-600 font-weight-bold small">
+                <i class="fas fa-layer-group mr-1"></i> Divisi:
+            </span>
+            <button type="button" class="btn btn-sm btn-primary filter-divisi active" data-divisi="all">Semua</button>
+            <% if(typeof listDivisi !== 'undefined') { listDivisi.forEach(d => { %>
+                <button type="button" class="btn btn-sm btn-outline-secondary filter-divisi" data-divisi="<%= d.nama %>"><%= d.nama %></button>
+            <% }) } %>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-bordered table-hover" id="productsTable">
                 <thead class="thead-light">
@@ -243,6 +254,20 @@
         });
         $('#productsTable_filter').hide(); // sembunyikan search default DataTables
         $('#tableSearch').on('keyup', function () { dt.search(this.value).draw(); });
+
+        // === FILTER DIVISI ===
+        let activeDivisi = 'all';
+        $('.filter-divisi').on('click', function () {
+            const $btn = $(this);
+            const divisi = $btn.data('divisi');
+
+            // toggle active state
+            $('.filter-divisi').removeClass('btn-primary').addClass('btn-outline-secondary');
+            $btn.removeClass('btn-outline-secondary').addClass('btn-primary');
+
+            activeDivisi = divisi;
+            dt.column(5).search(divisi === 'all' ? '' : '^' + divisi + '$', true, false).draw();
+        });
 
         // Edit Modal — fix relatedTarget agar selalu tombol, bukan ikon <i>
         $('#modalEdit').on('show.bs.modal', function (e) {

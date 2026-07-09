@@ -1,0 +1,80 @@
+<div class="container-fluid">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        .container-fluid { font-family: 'Inter', sans-serif; }
+        .aesthetic-card { border: none; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.04),0 1px 3px rgba(0,0,0,0.02) !important; background: #fff; overflow: hidden; }
+        .aesthetic-header { background: rgba(248,249,252,0.8) !important; backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.03) !important; padding: 1.5rem !important; }
+        .pill-badge { padding: 0.5em 1.2em !important; border-radius: 50rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.75em !important; color: white !important; }
+        .badge-approved_sales { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); }
+        .badge-rejected { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); }
+        .kode-highlight { color: #4e73df; background: #eaecfb; padding: 4px 10px; border-radius: 6px; font-weight: 800; }
+    </style>
+
+    <div class="d-sm-flex align-items-center justify-content-between mb-4 mt-2">
+        <h1 class="h3 mb-0 page-title">Riwayat Approval</h1>
+    </div>
+
+    <% var list = Array.isArray(orders) ? orders : []; %>
+
+    <% if (list.length === 0) { %>
+        <div class="card aesthetic-card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-history fa-3x text-gray-300 mb-3"></i>
+                <p class="mb-0 text-muted">Belum ada riwayat approval.</p>
+            </div>
+        </div>
+    <% } %>
+
+    <% for (var si = 0; si < list.length; si++) { %>
+        <%
+            var o = list[si];
+            var st = (o.status || '').toLowerCase();
+            var cabang = (usersMap && usersMap[o.cabang_id]) ? usersMap[o.cabang_id] : null;
+            var badgeClass = st === 'approved_sales' ? 'pill-badge badge-approved_sales' : 'pill-badge badge-rejected';
+        %>
+
+        <div class="card aesthetic-card mb-3">
+            <div class="card-header aesthetic-header d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="font-weight-bold">
+                        <span class="kode-highlight"><%= o.kode_order %></span>
+                    </div>
+                    <small class="text-muted">
+                        Cabang: <strong><%= cabang ? cabang.username : o.cabang_id %></strong>
+                    </small>
+                </div>
+                <span class="<%= badgeClass %>"><%= st === 'approved_sales' ? 'DISETUJUI' : 'DITOLAK' %></span>
+            </div>
+            <div class="card-body px-4 py-3">
+                <div class="row">
+                    <div class="col-md-6">
+                        <small class="text-muted">Total: <strong>Rp <%= (o.total_harga || 0).toLocaleString('id-ID') %></strong></small>
+                    </div>
+                    <div class="col-md-6 text-md-right">
+                        <small class="text-muted"><%= (o.items || []).length %> item</small>
+                    </div>
+                </div>
+                <% if (o.rejection_reason) { %>
+                <div class="mt-2 p-2 bg-light rounded">
+                    <small><strong>Alasan Ditolak:</strong> <%= o.rejection_reason %></small>
+                </div>
+                <% } %>
+            </div>
+        </div>
+    <% } %>
+</div>
+
+<script>
+    (function() {
+        var params = new URLSearchParams(window.location.search);
+        var ok = params.get('ok'), err = params.get('err');
+        if (ok && typeof Swal !== 'undefined') {
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: ok, showConfirmButton: false, timer: 3000 });
+            params.delete('ok'); window.history.replaceState({}, '', location.pathname + (params.toString() ? '?' + params.toString() : ''));
+        }
+        if (err && typeof Swal !== 'undefined') {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: err });
+            params.delete('err'); window.history.replaceState({}, '', location.pathname + (params.toString() ? '?' + params.toString() : ''));
+        }
+    })();
+</script>

@@ -1,40 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const csrf = require('csurf');
+const { csrfProtection } = require('../../middleware/csrf');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 
 const { db } = require('../../firebaseAdmin');
 const { requireAuth, requireRole } = require('../../middleware/auth');
 const admin = require('firebase-admin');
+const { uploadToStorage } = require('../../storageHelper');
 
-const csrfProtection = csrf({ cookie: true });
 router.use(express.urlencoded({ extended: false }));
 
-// ===== Upload setup (bukti foto penerimaan) =====
-const proofsRoot = path.join(__dirname, '..', '..', '..', 'uploads', 'shipments_proofs');
-try {
-    if (!fs.existsSync(proofsRoot)) {
-        fs.mkdirSync(proofsRoot, { recursive: true });
-    }
-} catch (e) {
-    console.warn('Gagal membuat folder shipments proofs:', e.message);
-}
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, proofsRoot),
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname || '').toLowerCase();
-        const name = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + ext;
-        cb(null, name);
-    }
+// ===== Multer memory storage (tanpa disk) =====
+const upload = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        const ok = /^image\/(png|jpe?g|gif|webp|svg\+xml)$/.test(file.mimetype);
+        cb(ok ? null : new Error('File harus gambar'), ok);
+    },
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB/berkas
 });
-function fileFilter(req, file, cb) {
-    const ok = /^image\/(png|jpe?g|gif|webp|svg\+xml)$/.test(file.mimetype);
-    cb(ok ? null : new Error('File harus gambar'), ok);
-}
-const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB/berkas
-function proofUrl(filename) { return filename ? `/uploads/shipments_proofs/${filename}` : ''; }
 
 // helpers
 async function getUsersMapByIds(ids = []) {
@@ -210,20 +195,45 @@ router.post('/cabang/shipments/:id/confirm',
                 };
             });
 
-            // simpan foto bukti (shipment-level)
+            // Upload foto bukti ke Cloudinary
             const files = req.files || [];
-            const bukti_filenames = files.map(f => f.filename);
-            const bukti_urls = files.map(f => proofUrl(f.filename));
+            const buktiUrls = [];
+            for (const f of files) {
+                const ext = path.extname(f.originalname || '').toLowerCase();
+                const fileName = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + ext;
+                const destPath = 'shipments_proofs/' + fileName;
+                const url = await uploadToStorage(f.buffer, destPath, f.mimetype);
+                buktiUrls.push(url);
+            }
 
             await ref.update({
                 status: 'diterima',
                 keterangan: keterangan || dataCur.keterangan || '',
                 data_barang: itemsBaru,
-                bukti_penerimaan_filenames: (dataCur.bukti_penerimaan_filenames || []).concat(bukti_filenames),
-                bukti_penerimaan_urls: (dataCur.bukti_penerimaan_urls || []).concat(bukti_urls),
+                bukti_penerimaan_filenames: (dataCur.bukti_penerimaan_filenames || []).concat(files.map(f => f.originalname)),
+                bukti_penerimaan_urls: (dataCur.bukti_penerimaan_urls || []).concat(buktiUrls),
                 diterima_at: new Date(),
                 diterima_oleh: req.user.uid
             });
+
+            // Tambah stok ke toko cabang (branch_stocks)
+            const batch = db.batch();
+            let hasOp2 = false;
+            for (const item of itemsBaru) {
+                const qty_diterima = Number(item.qty_diterima || 0);
+                const pid = item.product_id || item.produk_id || item.productId || item.id_produk;
+                if (qty_diterima > 0 && pid) {
+                    const branchStockRef = db.collection('branch_stocks').doc(`${req.user.uid}_${pid}`);
+                    batch.set(branchStockRef, {
+                        cabang_id: req.user.uid,
+                        product_id: pid,
+                        stok: admin.firestore.FieldValue.increment(qty_diterima),
+                        updatedAt: new Date()
+                    }, { merge: true });
+                    hasOp2 = true;
+                }
+            }
+            if (hasOp2) await batch.commit().catch(e => console.error('Failed to update branch stock:', e));
 
             return res.redirect('/cabang/shipments?ok=confirmed');
         } catch (e) {

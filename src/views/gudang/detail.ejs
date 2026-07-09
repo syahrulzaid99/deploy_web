@@ -1,0 +1,186 @@
+<div class="container-fluid">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        .container-fluid { font-family: 'Inter', sans-serif; }
+        .aesthetic-card { border: none; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.04),0 1px 3px rgba(0,0,0,0.02) !important; background: #fff; overflow: hidden; }
+        .kode-highlight { color: #4e73df; background: #eaecfb; padding: 4px 10px; border-radius: 6px; font-weight: 800; }
+    </style>
+
+    <div class="d-sm-flex align-items-center justify-content-between mb-4 mt-2">
+        <h1 class="h3 mb-0 page-title">Detail Pesanan</h1>
+        <a href="/gudang/orders" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left mr-1"></i> Kembali
+        </a>
+    </div>
+
+    <% if (!order) { %>
+        <div class="alert alert-danger">Pesanan tidak ditemukan.</div>
+        <% return; %>
+    <% } %>
+
+    <div class="card aesthetic-card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Informasi Pesanan</h5>
+                    <table class="table table-sm">
+                        <tr><th>Kode Order</th><td><span class="kode-highlight"><%= order.kode_order %></span></td></tr>
+                        <tr><th>Status</th><td><%= order.status %></td></tr>
+                        <tr><th>Cabang</th><td><%= cabangInfo ? (cabangInfo.nama_cabang || cabangInfo.username) : order.cabang_id %></td></tr>
+                        <% if (cabangInfo) { %>
+                        <tr><th>Alamat</th><td><%= [cabangInfo.jalan, cabangInfo.kota, cabangInfo.provinsi].filter(Boolean).join(', ') || '-' %></td></tr>
+                        <% } %>
+                        <tr><th>Total</th><td><strong>Rp <%= (order.total_harga || 0).toLocaleString('id-ID') %></strong></td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h5>Keterangan</h5>
+                    <p><%= order.keterangan || '-' %></p>
+                    <% if (order.catatan_packing) { %>
+                        <p><strong>Catatan Packing:</strong> <%= order.catatan_packing %></p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items -->
+    <div class="card aesthetic-card mb-4">
+        <div class="card-header"><h5 class="mb-0">Daftar Barang</h5></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>#</th>
+                            <th>SKU</th>
+                            <th>Nama Produk</th>
+                            <th>Satuan</th>
+                            <th class="text-right">Qty</th>
+                            <th class="text-right">Harga</th>
+                            <th class="text-right">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% var items = Array.isArray(order.items) ? order.items : [];
+                           for (var i = 0; i < items.length; i++) {
+                               var it = items[i];
+                               var sub = Number(it.subtotal || it.qty * it.harga || 0);
+                        %>
+                        <tr>
+                            <td><%= i + 1 %></td>
+                            <td><%= it.sku || '-' %></td>
+                            <td><%= it.nama_produk || '-' %></td>
+                            <td><%= it.satuan || '-' %></td>
+                            <td class="text-right font-weight-bold"><%= it.qty %></td>
+                            <td class="text-right">Rp <%= Number(it.harga || 0).toLocaleString('id-ID') %></td>
+                            <td class="text-right">Rp <%= sub.toLocaleString('id-ID') %></td>
+                        </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- History -->
+    <% if (Array.isArray(order.history) && order.history.length > 0) { %>
+    <div class="card aesthetic-card mb-4">
+        <div class="card-header"><h5 class="mb-0">Riwayat Status</h5></div>
+        <div class="card-body">
+            <ul class="list-unstyled mb-0">
+                <% order.history.forEach(function(h) { %>
+                <li class="mb-2 pb-2 border-bottom">
+                    <div class="d-flex justify-content-between">
+                        <strong><%= h.status %></strong>
+                        <small class="text-muted">
+                            <%= h.at ? new Date(h.at._seconds ? h.at._seconds * 1000 : h.at).toLocaleString('id-ID') : '-' %>
+                        </small>
+                    </div>
+                    <small>oleh: <%= h.by_username || h.by %></small>
+                    <% if (h.note) { %><br><small class="text-muted"><%= h.note %></small><% } %>
+                </li>
+                <% }); %>
+            </ul>
+        </div>
+    </div>
+    <% } %>
+
+    <!-- Actions -->
+    <div class="d-flex mb-4" style="gap:12px;">
+        <% var st = (order.status || '').toLowerCase(); %>
+        <% if (st === 'approved_admin') { %>
+        <button class="btn btn-warning px-4" onclick="packOrder('<%= order.id %>')">
+            <i class="fas fa-box mr-1"></i> Tandai Dikemas
+        </button>
+        <% } %>
+        <% if (st === 'dipaket') { %>
+        <button class="btn btn-success px-4" onclick="sendOrder('<%= order.id %>')">
+            <i class="fas fa-truck mr-1"></i> Kirim Barang
+        </button>
+        <% } %>
+        <a href="/gudang/orders" class="btn btn-outline-secondary px-4">
+            <i class="fas fa-arrow-left mr-1"></i> Kembali
+        </a>
+    </div>
+</div>
+
+<!-- Pack Modal -->
+<div class="modal fade" id="modalPack" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <form id="formPack" method="POST" class="modal-content">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="modal-header">
+                <h5 class="modal-title">Tandai Dikemas</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Catatan Packing (opsional)</label>
+                    <textarea name="catatan_packing" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Batal</button>
+                <button class="btn btn-warning" type="submit"><i class="fas fa-box mr-1"></i> Tandai Dikemas</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Send Modal -->
+<div class="modal fade" id="modalSend" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <form id="formSend" method="POST" class="modal-content">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="modal-header">
+                <h5 class="modal-title">Kirim Barang</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Resi pengiriman akan dibuat otomatis. Barang akan dikirim ke cabang.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Batal</button>
+                <button class="btn btn-success" type="submit"><i class="fas fa-truck mr-1"></i> Ya, Kirim</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function packOrder(id) {
+        var form = document.getElementById('formPack');
+        form.action = '/gudang/orders/' + id + '/pack';
+        form.querySelector('textarea').value = '';
+        $('#modalPack').modal('show');
+    }
+    function sendOrder(id) {
+        var form = document.getElementById('formSend');
+        form.action = '/gudang/orders/' + id + '/send';
+        $('#modalSend').modal('show');
+    }
+</script>

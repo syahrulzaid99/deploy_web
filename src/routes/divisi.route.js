@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const csrf = require('csurf');
+const { csrfProtection } = require('../middleware/csrf');
 
 const { db } = require('../firebaseAdmin');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
-const csrfProtection = csrf({ cookie: true });
 router.use(express.urlencoded({ extended: false }));
 
 // ===== List =====

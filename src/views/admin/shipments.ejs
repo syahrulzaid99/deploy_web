@@ -135,6 +135,21 @@
         <h1 class="h3 mb-0 page-title">Manajemen Pengiriman</h1>
     </div>
 
+    <!-- Filter Cabang -->
+    <div class="card aesthetic-card mb-3">
+        <div class="card-body py-3">
+            <div class="d-flex flex-wrap" style="gap:6px;">
+                <span class="mr-2 text-gray-600 font-weight-bold small d-flex align-items-center">
+                    <i class="fas fa-store mr-1"></i> Cabang:
+                </span>
+                <button type="button" class="btn btn-sm btn-primary filter-cabang active" data-cabang="all">Semua</button>
+                <% if(typeof cabangs !== 'undefined' && Array.isArray(cabangs)) { cabangs.forEach(function(c) { %>
+                    <button type="button" class="btn btn-sm btn-outline-secondary filter-cabang" data-cabang="<%= c.id %>"><%= c.nama_cabang || c.username || c.id %></button>
+                <% }) } %>
+            </div>
+        </div>
+    </div>
+
     <% var list=Array.isArray(shipments) ? shipments : []; %>
 
         <% if (list.length===0) { %>
@@ -153,7 +168,7 @@
                         badgeClass='badge badge-success' ; } if (st==='ditolak' ) { badgeClass='badge badge-danger' ; }
                         %>
 
-                        <div class="card aesthetic-card mb-4">
+                        <div class="card aesthetic-card mb-4" data-pengirim="<%= s.pengirim || '' %>" data-penerima="<%= s.penerima || '' %>">
                             <div class="card-header aesthetic-header d-flex justify-content-between align-items-center">
                                 <div>
                                     <div class="font-weight-bold mb-2">
@@ -454,5 +469,37 @@
                 }
             }
         }, true);
+
+        // === FILTER CABANG ===
+        var filterBtns = document.querySelectorAll('.filter-cabang');
+        var shipmentCards = document.querySelectorAll('.card.aesthetic-card.mb-4[data-pengirim]');
+
+        filterBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var cabangId = this.getAttribute('data-cabang');
+
+                // toggle active
+                filterBtns.forEach(function(b) {
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-outline-secondary');
+                });
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-primary');
+
+                shipmentCards.forEach(function(card) {
+                    if (cabangId === 'all') {
+                        card.style.display = '';
+                    } else {
+                        var pengirim = card.getAttribute('data-pengirim');
+                        var penerima = card.getAttribute('data-penerima');
+                        if (pengirim === cabangId || penerima === cabangId) {
+                            card.style.display = '';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    }
+                });
+            });
+        });
     })();
 </script>

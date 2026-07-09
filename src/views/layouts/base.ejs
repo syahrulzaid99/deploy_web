@@ -87,6 +87,14 @@
                     </a>
                 </li>
 
+                <!-- Stok Cabang (Admin) -->
+                <li class="nav-item <%= isPrefix('/admin/cabang') %>">
+                    <a class="nav-link <%= isPrefix('/admin/cabang') %>" href="/admin/cabang">
+                        <i class="fas fa-store-alt"></i>
+                        <span>Stok Cabang</span>
+                    </a>
+                </li>
+
                 <!-- Laporan (Admin) -->
                 <li class="nav-item <%= isActive('/admin/reports') %>">
                     <a class="nav-link" href="/admin/reports">
@@ -114,6 +122,33 @@
                         </li>
                         <% } %>
 
+                    <% if (user && user.role==='sales' ) { %>
+                        <!-- Sales: Buat Pesanan (untuk cabang) -->
+                        <li class="nav-item <%= isActive('/sales/orders') %>">
+                            <a class="nav-link" href="/sales/orders">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span>Buat Pesanan</span>
+                            </a>
+                        </li>
+                        <% } %>
+
+                    <% if (user && user.role==='gudang' ) { %>
+                        <!-- Gudang: Pengemasan -->
+                        <li class="nav-item <%= isPrefix('/gudang/orders') %>">
+                            <a class="nav-link <%= isPrefix('/gudang/orders') %>" href="/gudang/orders">
+                                <i class="fas fa-boxes"></i>
+                                <span>Pengemasan</span>
+                            </a>
+                        </li>
+
+                        <!-- Gudang: Pengiriman -->
+                        <li class="nav-item <%= isActive('/admin/shipments') %>">
+                            <a class="nav-link" href="/admin/shipments">
+                                <i class="fas fa-arrow-right-arrow-left"></i>
+                                <span>Pengiriman</span>
+                            </a>
+                        </li>
+                        <% } %>
 
                             <hr class="sidebar-divider d-none d-md-block">
                             <div class="text-center d-none d-md-inline">

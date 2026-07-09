@@ -2,8 +2,8 @@
     <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
 </div>
 
+<% if (profile && profile.role === 'admin') { %>
 <div class="row">
-
     <!-- Total Users -->
     <div class="col-xl-4 col-md-6 mb-4">
         <div class="card border-left-primary shadow h-100 py-2">
@@ -60,8 +60,143 @@
             </div>
         </div>
     </div>
-
 </div>
+<% } else if (profile && profile.role === 'cabang') { %>
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Stok Tersedia di Toko</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Nama Produk</th>
+                                <th>SKU</th>
+                                <th>Stok</th>
+                                <th>Satuan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (branchStocks && branchStocks.length > 0) { %>
+                                <% branchStocks.forEach(item => { %>
+                                    <tr>
+                                        <td><%= item.nama_produk %></td>
+                                        <td><%= item.sku %></td>
+                                        <td class="font-weight-bold text-success"><%= item.stok_tersedia %></td>
+                                        <td><%= item.satuan %></td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="4" class="text-center">Belum ada data stok</td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<% } else if (profile && profile.role === 'sales') { %>
+<div class="row">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><%= (salesStats && salesStats.pending) || 0 %></div>
+                    </div>
+                    <div class="col-auto"><i class="fas fa-clock fa-2x text-gray-300"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Dalam Proses</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><%= (salesStats && salesStats.approved) || 0 %></div>
+                    </div>
+                    <div class="col-auto"><i class="fas fa-sync fa-2x text-gray-300"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Selesai</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><%= (salesStats && salesStats.rejected) || 0 %></div>
+                    </div>
+                    <div class="col-auto"><i class="fas fa-check-circle fa-2x text-gray-300"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mb-4">
+    <div class="col-lg-12">
+        <a href="/sales/orders" class="btn btn-primary"><i class="fas fa-shopping-cart mr-1"></i> Buat Pesanan</a>
+    </div>
+</div>
+<% } else if (profile && profile.role === 'gudang') { %>
+<div class="row">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Siap Dikemas</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><%= (gudangStats && gudangStats.readyToPack) || 0 %></div>
+                    </div>
+                    <div class="col-auto"><i class="fas fa-boxes fa-2x text-gray-300"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Sedang Dikemas</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><%= (gudangStats && gudangStats.packed) || 0 %></div>
+                    </div>
+                    <div class="col-auto"><i class="fas fa-box-open fa-2x text-gray-300"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Dalam Pengiriman</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><%= (gudangStats && gudangStats.sent) || 0 %></div>
+                    </div>
+                    <div class="col-auto"><i class="fas fa-truck fa-2x text-gray-300"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mb-4">
+    <div class="col-lg-12">
+        <a href="/gudang/orders" class="btn btn-primary"><i class="fas fa-boxes mr-1"></i> Lihat Pengemasan</a>
+        <a href="/admin/shipments" class="btn btn-outline-secondary ml-2"><i class="fas fa-truck mr-1"></i> Pengiriman</a>
+    </div>
+</div>
+<% } %>
 
 <!-- (tetap) Kartu Profil Pengguna -->
 <div class="row">

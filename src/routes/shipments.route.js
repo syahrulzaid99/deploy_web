@@ -1,32 +1,29 @@
 const express = require('express');
 const router = express.Router();
-const csrf = require('csurf');
+const { csrfProtection } = require('../middleware/csrf');
 const { randomUUID } = require('crypto');
 
 const { db } = require('../firebaseAdmin');
 const { requireAuth, requireAuthApi, requireRole } = require('../middleware/auth');
 const { generateSequentialCode, generateResiCode } = require('../utils/generateCode');
+const { snap } = require('../midtransClient');
 
-const csrfProtection = csrf({ cookie: true });
 router.use(express.urlencoded({ extended: false }));
 
 const multer = require('multer');
 const path = require('path');
 const admin = require('firebase-admin');
-const { profile } = require('console');
 
-const proofStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, '..', '..', 'uploads', 'shipments_proofs'));
+const { uploadToStorage } = require('../storageHelper');
+
+const uploadProofs = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        const ok = /^image\/(png|jpe?g|gif|webp|svg\+xml)$/.test(file.mimetype);
+        cb(ok ? null : new Error('File harus gambar'), ok);
     },
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname || '').toLowerCase();
-        cb(null, Date.now() + '-' + Math.random().toString(36).slice(2, 8) + ext);
-    },
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB/berkas
 });
-
-
-const uploadProofs = multer({ storage: proofStorage });
 
 // Helpers
 async function getCabangUsersMap() {
@@ -49,7 +46,7 @@ async function getUsersMapByIds(ids = []) {
 }
 
 // ====================== ADMIN: LIST & CREATE ======================
-router.get('/admin/shipments', requireAuth, requireRole(['admin']), csrfProtection, async (req, res) => {
+router.get('/admin/shipments', requireAuth, requireRole(['admin', 'gudang']), csrfProtection, async (req, res) => {
     const snap = await db.collection('shipments').orderBy('kode_pengiriman').get();
     const shipments = snap.docs.map(d => d.data());
 
@@ -237,7 +234,7 @@ router.post('/admin/shipments/:id/delete', requireAuth, requireRole(['admin']), 
 router.get(
     '/admin/shipments/:id/resi',
     requireAuth,
-    requireRole(['admin']),
+    requireRole(['admin', 'gudang']),
     async (req, res) => {
         const id = req.params.id;
         const snap = await db.collection('shipments').doc(id).get();
@@ -468,7 +465,7 @@ router.get(
     }
 );
 
-// POST bukti penerimaan (foto) dari Flutter
+// POST bukti penerimaan (foto) dari Flutter — langsung ke Cloudinary
 router.post('/api/v1/cabang/shipments/:kode_pengiriman/proofs',
     requireAuthApi,
     requireRole(['cabang']),
@@ -491,9 +488,16 @@ router.post('/api/v1/cabang/shipments/:kode_pengiriman/proofs',
                 return res.status(403).json({ error: 'forbidden_shipment_not_yours' });
             }
 
-            const baseUrl = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+            // Upload ke Cloudinary
             const files = req.files || [];
-            const urls = files.map(f => `${baseUrl}/uploads/shipments_proofs/${f.filename}`);
+            const urls = [];
+            for (const f of files) {
+                const ext = path.extname(f.originalname || '').toLowerCase();
+                const fileName = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + ext;
+                const destPath = 'shipments_proofs/' + fileName;
+                const url = await uploadToStorage(f.buffer, destPath, f.mimetype);
+                urls.push(url);
+            }
 
             await doc.ref.update({
                 status: 'diterima',
@@ -549,10 +553,16 @@ router.post(
                 return res.status(400).json({ error: 'invalid_aksi' });
             }
 
-            // foto bukti
-            const baseUrl = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+            // foto bukti — upload ke Cloudinary
             const files = req.files || [];
-            const urls = files.map((f) => `${baseUrl}/uploads/shipments_proofs/${f.filename}`);
+            const urls = [];
+            for (const f of files) {
+                const ext = path.extname(f.originalname || '').toLowerCase();
+                const fileName = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + ext;
+                const destPath = 'shipments_proofs/' + fileName;
+                const url = await uploadToStorage(f.buffer, destPath, f.mimetype);
+                urls.push(url);
+            }
 
             // items_json: [{idx, qty_diterima, catatan}]
             let itemsPatch = [];
@@ -600,6 +610,44 @@ router.post(
             }
 
             await doc.ref.update(updateData);
+
+            // LOGIC STOK CABANG / PUSAT
+            if (aksi === 'ditolak') {
+                // Restore stock ke pusat
+                const batch = db.batch();
+                let hasOp = false;
+                for (const item of curItems) {
+                    const qty = Number(item.qty || item.jumlah || item._qty || 0);
+                    const pid = item.product_id || item.produk_id || item.productId || item.id_produk;
+                    if (qty > 0 && pid) {
+                        batch.update(db.collection('products').doc(pid), {
+                            stok: admin.firestore.FieldValue.increment(qty),
+                            updatedAt: new Date()
+                        });
+                        hasOp = true;
+                    }
+                }
+                if (hasOp) await batch.commit().catch(e => console.error('Failed to restore stock on reject:', e));
+            } else if (aksi === 'diterima') {
+                // Tambah stok ke toko cabang (branch_stocks)
+                const batch = db.batch();
+                let hasOp = false;
+                for (const item of nextItems) {
+                    const qty_diterima = Number(item.qty_diterima || 0);
+                    const pid = item.product_id || item.produk_id || item.productId || item.id_produk;
+                    if (qty_diterima > 0 && pid) {
+                        const branchStockRef = db.collection('branch_stocks').doc(`${req.user.uid}_${pid}`);
+                        batch.set(branchStockRef, {
+                            cabang_id: req.user.uid,
+                            product_id: pid,
+                            stok: admin.firestore.FieldValue.increment(qty_diterima),
+                            updatedAt: new Date()
+                        }, { merge: true });
+                        hasOp = true;
+                    }
+                }
+                if (hasOp) await batch.commit().catch(e => console.error('Failed to update branch stock:', e));
+            }
 
             return res.json({
                 ok: true,
@@ -824,6 +872,38 @@ router.post(
                 updatedAt: new Date(),
             };
 
+            // Generate Midtrans Snap Token
+            // Gunakan midtrans_order_id terpisah agar tidak duplikat jika retry
+            const midtrans_order_id = `${kode_order}-${Date.now()}`;
+            try {
+                const parameter = {
+                    transaction_details: {
+                        order_id: midtrans_order_id,
+                        gross_amount: Math.round(total_harga), // harus integer
+                    },
+                    customer_details: {
+                        first_name: req.user.username || 'Cabang',
+                    },
+                    enabled_payments: [
+                        'credit_card', 'bca_va', 'bni_va', 'bri_va', 'permata_va',
+                        'mandiri_bill', 'gopay', 'shopeepay', 'other_qris',
+                        'alfamart', 'indomaret',
+                    ],
+                };
+                console.log('[Midtrans] creating transaction:', midtrans_order_id, 'amount:', Math.round(total_harga));
+                const transaction = await snap.createTransaction(parameter);
+                doc.snap_token = transaction.token;
+                doc.payment_url = transaction.redirect_url;
+                doc.midtrans_order_id = midtrans_order_id;
+                doc.payment_status = 'pending';
+                console.log('[Midtrans] token ok:', doc.payment_url);
+            } catch (midtransError) {
+                const msgs = midtransError?.ApiResponse?.error_messages || midtransError?.message || midtransError;
+                console.error('[Midtrans] GAGAL buat token. error_messages:', JSON.stringify(msgs));
+                console.error('[Midtrans] Full error:', JSON.stringify(midtransError?.ApiResponse || midtransError));
+                doc.payment_status = 'failed_to_generate';
+            }
+
             await db.collection('orders').doc(id).set(doc);
 
             // Deduct inventory stock
@@ -840,7 +920,7 @@ router.post(
             }
             if (hasOp) await batch.commit().catch(e => console.error('Failed to deduct stock for order:', e));
 
-            return res.json({ ok: true, kode_order, id });
+            return res.json({ ok: true, kode_order, id, payment_url: doc.payment_url });
         } catch (e) {
             console.error('❌ Create order error:', e);
             return res.status(500).json({ error: 'server_error' });
@@ -869,6 +949,7 @@ router.get(
                     jumlah_item: Array.isArray(o.items) ? o.items.length : 0,
                     items: o.items || [],
                     keterangan: o.keterangan || '',
+                    payment_url: o.payment_url || null,
                     createdAt: o.createdAt || null,
                 };
             });
@@ -881,6 +962,307 @@ router.get(
             });
 
             return res.json({ orders });
+        } catch (e) {
+            console.error(e);
+            return res.status(500).json({ error: 'server_error' });
+        }
+    }
+);
+
+// ====================== API: RETRY PAYMENT FOR CABANG ======================
+router.post(
+    '/api/v1/cabang/orders/:id/pay',
+    requireAuthApi,
+    requireRole(['cabang']),
+    async (req, res) => {
+        try {
+            const id = req.params.id;
+            const docRef = db.collection('orders').doc(id);
+            const docSnap = await docRef.get();
+
+            if (!docSnap.exists) {
+                return res.status(404).json({ error: 'not_found' });
+            }
+
+            const docData = docSnap.data();
+
+            if (docData.cabang_id !== req.user.uid) {
+                return res.status(403).json({ error: 'forbidden' });
+            }
+
+            if (docData.status !== 'pending') {
+                return res.status(400).json({ error: 'order_not_pending' });
+            }
+
+            // Selalu generate token baru — hindari URL expired
+            const midtrans_order_id = `${docData.kode_order}-${Date.now()}`;
+            const grossAmount = Math.round(docData.total_harga || 0);
+
+            const parameter = {
+                transaction_details: {
+                    order_id: midtrans_order_id,
+                    gross_amount: grossAmount,
+                },
+                customer_details: {
+                    first_name: req.user.username || 'Cabang',
+                },
+                enabled_payments: [
+                    'credit_card', 'bca_va', 'bni_va', 'bri_va',
+                    'permata_va', 'other_va', 'echannel',
+                    'gopay', 'shopeepay', 'qris',
+                    'alfamart', 'indomaret',
+                ],
+            };
+
+            console.log('[Midtrans] retry:', midtrans_order_id, 'amount:', grossAmount);
+
+            let transaction;
+            try {
+                transaction = await snap.createTransaction(parameter);
+            } catch (midErr) {
+                const apiResp = midErr?.ApiResponse || {};
+                const errMsgs = apiResp.error_messages || [midErr?.message || String(midErr)];
+                console.error('[Midtrans] error_messages:', JSON.stringify(errMsgs));
+                console.error('[Midtrans] status_code:', apiResp.status_code);
+                // Kirim error asli ke Flutter agar bisa tampil
+                return res.status(502).json({
+                    error: 'midtrans_error',
+                    message: Array.isArray(errMsgs) ? errMsgs.join('; ') : String(errMsgs),
+                    status_code: apiResp.status_code,
+                });
+            }
+
+            const payment_url = transaction.redirect_url;
+            const snap_token = transaction.token;
+
+            await docRef.update({
+                payment_url,
+                snap_token,
+                midtrans_order_id,
+                payment_status: 'pending',
+                updatedAt: new Date(),
+            });
+
+            console.log('[Midtrans] ok:', payment_url);
+            return res.json({ ok: true, payment_url });
+        } catch (e) {
+            console.error('Retry payment error:', e);
+            return res.status(500).json({ error: 'server_error', message: e.message });
+        }
+    }
+);
+
+// ====================== CABANG: KONFIRMASI PEMBAYARAN (fallback dari Flutter) ======================
+router.post('/api/v1/cabang/orders/:id/confirm-payment', requireAuthApi, async (req, res) => {
+    try {
+        const id = req.params.id;
+        const ref = db.collection('orders').doc(id);
+        const cur = await ref.get();
+
+        if (!cur.exists) {
+            return res.status(404).json({ error: 'Order tidak ditemukan' });
+        }
+
+        const data = cur.data();
+
+        if (['selesai', 'dikirim', 'diterima', 'approved_sales', 'approved_admin', 'dipaket'].includes(data.status)) {
+            return res.json({ ok: true, status: data.status });
+        }
+
+        if (data.status !== 'pending') {
+            return res.json({ ok: true, status: data.status });
+        }
+
+        // Di flow baru: konfirmasi payment hanya update payment_status.
+        // Status tetap 'pending' sampai sales approve.
+        await ref.update({
+            payment_status: 'settlement',
+            updatedAt: new Date()
+        });
+
+        console.log(`[Flutter] Order ${data.kode_order || id} -> pembayaran dikonfirmasi (pending sales approval)`);
+        return res.json({ ok: true, status: 'pending', payment_status: 'settlement' });
+    } catch (e) {
+        console.error('Confirm payment error:', e);
+        return res.status(500).json({ error: 'server_error' });
+    }
+});
+
+// ====================== API: BRANCH PRODUCTS (stok cabang) ======================
+router.get(
+    '/api/v1/cabang/branch-products',
+    requireAuthApi,
+    requireRole(['cabang']),
+    async (req, res) => {
+        try {
+            const uid = req.user.uid;
+            const stockSnap = await db.collection('branch_stocks').where('cabang_id', '==', uid).get();
+            const stocksMap = {};
+            stockSnap.docs.forEach(d => {
+                const data = d.data();
+                if (data.product_id) stocksMap[data.product_id] = data.stok || 0;
+            });
+
+            const prodIds = Object.keys(stocksMap);
+            const products = [];
+            for (const pid of prodIds) {
+                const prodDoc = await db.collection('products').doc(pid).get();
+                if (!prodDoc.exists) continue;
+                const p = prodDoc.data();
+                products.push({
+                    id: pid,
+                    sku: p.sku || '',
+                    barcode: p.barcode || '',
+                    nama_produk: p.nama_produk || '',
+                    satuan: p.satuan || '',
+                    harga_jual: p.harga_jual || 0,
+                    stok_tersedia: stocksMap[pid],
+                    gambar_url: p.gambar_url || '',
+                });
+            }
+            products.sort((a, b) => (a.nama_produk || '').localeCompare(b.nama_produk || ''));
+
+            return res.json({ products });
+        } catch (e) {
+            console.error(e);
+            return res.status(500).json({ error: 'server_error' });
+        }
+    }
+);
+
+// ====================== API: CREATE SALE (penjualan lokal) ======================
+router.post(
+    '/api/v1/cabang/sales',
+    requireAuthApi,
+    requireRole(['cabang']),
+    express.json(),
+    async (req, res) => {
+        try {
+            const { items, keterangan, total_bayar } = req.body || {};
+
+            if (!Array.isArray(items) || items.length === 0) {
+                return res.status(400).json({ error: 'items_required' });
+            }
+
+            for (const it of items) {
+                if (!it.product_id || !it.qty || it.qty <= 0) {
+                    return res.status(400).json({ error: 'invalid_item' });
+                }
+            }
+
+            const uid = req.user.uid;
+
+            // Validasi stok cabang
+            const stockSnap = await db.collection('branch_stocks').where('cabang_id', '==', uid).get();
+            const stocksMap = {};
+            stockSnap.docs.forEach(d => {
+                const data = d.data();
+                if (data.product_id) stocksMap[data.product_id] = data.stok || 0;
+            });
+
+            let total_harga = 0;
+            const enrichedItems = [];
+            for (const it of items) {
+                const pid = it.product_id;
+                const qty = Number(it.qty);
+                const tersedia = stocksMap[pid] || 0;
+                if (tersedia < qty) {
+                    const prodDoc = await db.collection('products').doc(pid).get();
+                    const nama = prodDoc.exists ? (prodDoc.data().nama_produk || '-') : '-';
+                    return res.status(400).json({
+                        error: 'insufficient_stock',
+                        message: `Stok "${nama}" tidak mencukupi (Tersisa: ${tersedia})`
+                    });
+                }
+                const prodDoc = await db.collection('products').doc(pid).get();
+                const p = prodDoc.data() || {};
+                const harga = p.harga_jual || 0;
+                total_harga += qty * harga;
+                enrichedItems.push({
+                    product_id: pid,
+                    nama_produk: p.nama_produk || '-',
+                    sku: p.sku || '',
+                    barcode: p.barcode || '',
+                    satuan: p.satuan || '',
+                    qty,
+                    harga,
+                    subtotal: qty * harga,
+                });
+            }
+
+            const kode_penjualan = await generateSequentialCode('sales', 'SJ', 'kode_penjualan');
+            const id = randomUUID();
+
+            const doc = {
+                id,
+                kode_penjualan,
+                cabang_id: uid,
+                cabang_username: req.user.username,
+                items: enrichedItems,
+                total_harga,
+                total_bayar: Number(total_bayar || 0),
+                keterangan: String(keterangan || '').trim(),
+                status: 'selesai',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+
+            await db.collection('sales').doc(id).set(doc);
+
+            // Kurangi stok cabang
+            const batch = db.batch();
+            let hasOp = false;
+            for (const item of enrichedItems) {
+                if (item.product_id && item.qty > 0) {
+                    const branchStockRef = db.collection('branch_stocks').doc(`${uid}_${item.product_id}`);
+                    batch.set(branchStockRef, {
+                        cabang_id: uid,
+                        product_id: item.product_id,
+                        stok: admin.firestore.FieldValue.increment(-item.qty),
+                        updatedAt: new Date()
+                    }, { merge: true });
+                    hasOp = true;
+                }
+            }
+            if (hasOp) await batch.commit().catch(e => console.error('Failed to deduct branch stock:', e));
+
+            console.log(`[Sales] ${kode_penjualan} created by ${req.user.username}`);
+            return res.json({ ok: true, kode_penjualan, id });
+        } catch (e) {
+            console.error('Create sale error:', e);
+            return res.status(500).json({ error: 'server_error' });
+        }
+    }
+);
+
+// ====================== API: LIST SALES (riwayat penjualan cabang) ======================
+router.get(
+    '/api/v1/cabang/sales',
+    requireAuthApi,
+    requireRole(['cabang']),
+    async (req, res) => {
+        try {
+            const snap = await db.collection('sales')
+                .where('cabang_id', '==', req.user.uid)
+                .orderBy('createdAt', 'desc')
+                .get();
+
+            const sales = snap.docs.map(d => {
+                const s = d.data();
+                return {
+                    id: s.id,
+                    kode_penjualan: s.kode_penjualan,
+                    status: s.status || 'selesai',
+                    total_harga: s.total_harga || 0,
+                    total_bayar: s.total_bayar || 0,
+                    jumlah_item: Array.isArray(s.items) ? s.items.length : 0,
+                    items: s.items || [],
+                    keterangan: s.keterangan || '',
+                    createdAt: s.createdAt || null,
+                };
+            });
+
+            return res.json({ sales });
         } catch (e) {
             console.error(e);
             return res.status(500).json({ error: 'server_error' });
